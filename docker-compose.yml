@@ -1,0 +1,68 @@
+services:
+  kairo_auth_db:
+    image: postgres:15
+    container_name: kairo_auth
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kairo
+      POSTGRES_DB: kairo_auth
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+      - ./docker/init/kairo_auth.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+  kairo_client:
+    build:
+      context: .
+      dockerfile: docker/deployments/Dockerfile.client
+    ports:
+      - "3000:3000"
+    env_file:
+      - ".env"
+  kairo_auth_service:
+    build:
+      context: .
+      dockerfile: docker/deployments/Dockerfile.auth
+    ports:
+      - "3001:3001"
+    env_file:
+      - ".env"
+    depends_on:
+      - kairo_auth_db
+  kairo_document_service:
+    build:
+      context: .
+      dockerfile: docker/deployments/Dockerfile.doc
+    ports:
+      - "3002:3002"
+    env_file:
+      - ".env"
+
+  kairo_ai_service:
+    build:
+      context: .
+      dockerfile: docker/deployments/Dockerfile.ais
+    ports:
+      - "3003:3003"
+    env_file:
+      - ".env"
+  kairo_ws_service:
+    build:
+      context: .
+      dockerfile: docker/deployments/Dockerfile.ws
+    ports:
+      - "3004:3004"
+    env_file:
+      - ".env"
+  kairo_gateway_service:
+    build:
+      context: .
+      dockerfile: docker/deployments/Dockerfile.gw
+    ports:
+      - "8080:8080"
+    env_file:
+      - ".env"
+
+volumes:
+  auth_pgdata:

@@ -1,0 +1,17 @@
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o /api_server ./cmd/api/server
+
+FROM alpine:latest
+
+COPY --from=builder /api_server /api_server
+
+EXPOSE 8080
+CMD ["/api_server"]
