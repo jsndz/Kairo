@@ -33,7 +33,7 @@ services:
   kairo_document_service:
     build:
       context: .
-      dockerfile: docker/deployments/Dockerfile.doc
+      dockerfile: docker/deployments/Dockerfile.docs
     ports:
       - "3002:3002"
     env_file:

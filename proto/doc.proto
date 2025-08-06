@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package doc;
+
+option go_package = "github.com/jsndz/kairo-proto/doc;docpb";
+
+service DocService {
+    rpc CreateDocument (CreateDocumentRequest) returns (CreateDocumentResponse);
+}
+
+message CreateDocumentRequest {
+    string title = 1;
+}
+
+message CreateDocumentResponse {
+    string doc_id = 1;
+}
