@@ -7,11 +7,11 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /api_server ./cmd/api/server
+RUN go build -o /ws_server ./cmd/server
 
 FROM alpine:latest
 
-COPY --from=builder /api_server /api_server
+COPY --from=builder /ws_server /ws_server
 
-EXPOSE 8080
-CMD ["/api_server"]
+EXPOSE 3004
+CMD ["/ws_server"]
