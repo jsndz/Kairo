@@ -38,7 +38,6 @@ message User {
 
 
 message ValidateRequest {
-  string token = 1;
 }
 
 message ValidateResponse {

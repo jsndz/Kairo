@@ -2,10 +2,12 @@ package handler
 
 import (
 	"context"
+	"strings"
 
 	authpb "github.com/jsndz/kairo-proto/proto/auth"
 	"github.com/jsndz/kairo/auth-service/internal/app/model"
 	"github.com/jsndz/kairo/auth-service/internal/app/service"
+	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
 )
 
@@ -62,7 +64,23 @@ func (h *UserHandler) SignIn(ctx context.Context,req *authpb.SignInRequest)(auth
 
 
 func (h *UserHandler) Validate(ctx context.Context,req *authpb.ValidateRequest) (authpb.ValidateResponse){
-	user_id,err := h.userService.Authenticate(req.Token)
+	md,ok:= metadata.FromIncomingContext(ctx)
+	if !ok{
+		return authpb.ValidateResponse{
+			Valid: false,
+			UserId: "",
+		} 
+	}
+	authHeader := md["authorization"]
+	if len(authHeader) == 0 {
+		return authpb.ValidateResponse{
+			Valid: false,
+			UserId: "",
+		}
+	}
+	token := strings.TrimPrefix(authHeader[0], "Bearer ")
+	user_id,err := h.userService.Authenticate(token)
+
 	if err != nil {
 		return authpb.ValidateResponse{
 			Valid: false,
