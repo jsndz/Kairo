@@ -14,10 +14,17 @@ import (
 func main(){
 	router := gin.New()
 	router.Use(gin.Recovery())
+
 	authClient,conn:= clients.NewAuthClient()
 	defer conn.Close()
 	authHandlers := handlers.AuthHandlers{
 		AuthClient: authClient,
+	}
+
+	docClient,conn:= clients.NewDocClient()
+	defer conn.Close()
+	docHandlers := handlers.DocHandlers{
+		DocClient: docClient,
 	}
 	
 	router.Use(cors.New(cors.Config{
@@ -29,8 +36,15 @@ func main(){
 		MaxAge:           12 * time.Hour,
 	}))
 	api := router.Group("/api/v1")
+
 	auth := api.Group("/auth")
 	route.AuthRoute(auth,authHandlers)
+	
+	doc := api.Group("/doc")
+	doc.Use(authHandlers.ValidationMiddleware())
+	route.DocRoute(doc,docHandlers)
+	
+
 	
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)

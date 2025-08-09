@@ -9,8 +9,6 @@ import (
 
 
 func InitDB(dsn string) (*gorm.DB,error){
-
-	
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Coudn't run postgres")

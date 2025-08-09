@@ -10,3 +10,7 @@ func AuthRoute(router *gin.RouterGroup, h handlers.AuthHandlers){
 	router.POST("/signup",h.SignUp)
 
 }
+
+func DocRoute(router *gin.RouterGroup, h handlers.DocHandlers){
+	router.POST("/create",h.CreateDoc)
+}
