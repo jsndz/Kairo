@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: kairo_auth
     volumes:
       - auth_pgdata:/var/lib/postgresql/data
-      - ./docker/init/kairo_auth.sql:/docker-entrypoint-initdb.d/init.sql:ro
     restart: unless-stopped
   kairo_client:
     build:

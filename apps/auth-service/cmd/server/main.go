@@ -8,6 +8,7 @@ import (
 	authpb "github.com/jsndz/kairo-proto/proto/auth"
 	"github.com/jsndz/kairo/auth-service/internal/app/handler"
 	"github.com/jsndz/kairo/pkg/db"
+	"github.com/jsndz/kairo/pkg/env"
 	"google.golang.org/grpc"
 )
 
@@ -18,6 +19,7 @@ type AuthServer struct {
 }
 
 func main(){  
+    env.Loadenv()
     dsn := os.Getenv("AUTH_DB_URL")
     database,err := db.InitDB(dsn)
 	lis, err := net.Listen("tcp", ":3001")
