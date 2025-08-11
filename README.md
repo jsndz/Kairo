@@ -1,6 +1,6 @@
-## Kairo: Realtime AI-Powered Document Collaboration Platform (Like Google Docs + Copilot)
+## Kairo:
 
-Build a distributed, real-time collaborative editor for documents, with embedded GPT-based AI assistant for summarization, rewriting, diagram generation, etc.
+Real-time AI-Powered Documentation & Code Collaboration Platform — like Google Docs, but built for technical teams. Write, edit, and share rich documents with embedded syntax-highlighted code blocks, AI-assisted summaries, refactoring, diagram generation, and instant collaboration. Add images and visual assets directly into your documents, and let AI help you create and edit them on the fly.
 
 ## PORTS
 

@@ -4,19 +4,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-type Role string
-
-const (
-	RoleUser  Role = "user"
-	RoleAdmin Role = "admin"
-)
 
 type User struct {
 	ID       uint   `gorm:"primaryKey"`
 	Name string `gorm:"unique;not null"`
 	Email 	 string `gorm:"unique;not null"`
 	Password string `gorm:"not null"`
-	Role string `gorm:"type:enum('user','admin');default:'user'"`
 }
 	
 
