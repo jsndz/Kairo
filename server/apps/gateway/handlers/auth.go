@@ -38,17 +38,14 @@ func(h *AuthHandlers) SignUp(ctx *gin.Context)  {
 		ctx.JSON(400,gin.H{"error":"Unable parse json"})
 		return 
 	}
-	log.Println("HELLO2")
-
 	res,err:= h.AuthClient.SignUp(ctx.Request.Context(),&req)
-	log.Println("HELLO3")
 
 	if err!= nil{
 		ctx.JSON(400,gin.H{"error":"Unable to get data"})
 		log.Fatal("err",err)
 		return
 	}
-	log.Println("HELLO4")
+
 
 	ctx.JSON(200,res)
 }

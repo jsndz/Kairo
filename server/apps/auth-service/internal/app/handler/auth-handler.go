@@ -36,6 +36,7 @@ func (h *UserHandler) SignUp(ctx context.Context,req *authpb.SignUpRequest) (*au
 	authUser := &authpb.User{
 		Name:  data.Name,
 		Email: data.Email,
+		Id: data.ID,
 	}
 
 	return &authpb.SignUpResponse{
@@ -55,6 +56,7 @@ func (h *UserHandler) SignIn(ctx context.Context,req *authpb.SignInRequest)(*aut
 	authUser := &authpb.User{
 		Name:  data.Name,
 		Email: data.Email,
+		Id: data.ID,
 	}
 	return &authpb.SignInResponse{
 		Token: token,

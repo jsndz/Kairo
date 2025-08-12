@@ -7,7 +7,7 @@ import {
 } from "@/types/auth";
 const API_BASE = "http://localhost:8080/api/v1";
 
-const SESSION_KEY = "safetrace_session";
+const SESSION_KEY = "kairo_session";
 
 function saveSession(user: User) {
   localStorage.setItem(SESSION_KEY, JSON.stringify({ user }));
@@ -41,14 +41,12 @@ async function signup(credentials: SignupCredentials): Promise<AuthResponse> {
     const res = await axios.post(`${API_BASE}/auth/signup`, {
       email: credentials.email,
       password: credentials.password,
-      username: credentials.name,
+      name: credentials.name,
     });
-    console.log(res);
 
-    const { data: user } = res.data;
-    saveSession(user);
+    saveSession(res.data.user);
 
-    return { success: true, user };
+    return { success: true, user: res?.data?.user };
   } catch (err: any) {
     return {
       success: false,
@@ -74,11 +72,11 @@ async function login(credentials: LoginCredentials): Promise<AuthResponse> {
         withCredentials: true,
       }
     );
+    console.log(res.data.user);
 
-    const { data: user } = res.data;
-    saveSession(user);
+    saveSession(res.data.user);
 
-    return { success: true, user };
+    return { success: true, user: res?.data?.user };
   } catch (err: any) {
     console.error("Login error:", err.response?.data || err.message);
     return {

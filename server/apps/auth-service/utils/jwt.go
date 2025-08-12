@@ -9,7 +9,7 @@ import (
 )
 
 
-func GenerateJWT(email string,userId uint) (string, error) {
+func GenerateJWT(email string,userId uint32) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal().Msg("Secret is Empty")

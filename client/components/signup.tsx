@@ -1,13 +1,15 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { SignupCredentials } from "@/types/auth";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function SignupForm() {
   const { signup, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const router = useRouter();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -26,14 +28,18 @@ export default function SignupForm() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
-
     signup(formData);
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
@@ -45,19 +51,18 @@ export default function SignupForm() {
       </p>
 
       <form className="my-8" onSubmit={handleSubmit}>
-        <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-          <LabelInputContainer>
-            <Label htmlFor="firstname">Name</Label>
-            <Input
-              id="name"
-              placeholder="Tyler"
-              type="text"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </LabelInputContainer>
-        </div>
+        <LabelInputContainer className="mb-4">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            placeholder="Tyler"
+            type="text"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </LabelInputContainer>
+
         <LabelInputContainer className="mb-4">
           <Label htmlFor="email">Email Address</Label>
           <Input
@@ -69,6 +74,7 @@ export default function SignupForm() {
             required
           />
         </LabelInputContainer>
+
         <LabelInputContainer className="mb-4">
           <Label htmlFor="password">Password</Label>
           <Input
@@ -80,6 +86,7 @@ export default function SignupForm() {
             required
           />
         </LabelInputContainer>
+
         <LabelInputContainer className="mb-4">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
           <Input
@@ -99,9 +106,16 @@ export default function SignupForm() {
           type="submit"
           disabled={isLoading}
         >
-          {isLoading ? "Signing up..." : "Sign up →"}
+          {isLoading ? "Signing up..." : "Sign Up →"}
           <BottomGradient />
         </button>
+
+        <p className="mt-4 text-center text-sm text-neutral-600 dark:text-neutral-400">
+          Already have an account?{" "}
+          <Link href="/signin" className="text-blue-500 hover:underline">
+            Sign In
+          </Link>
+        </p>
 
         <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
       </form>
@@ -109,14 +123,12 @@ export default function SignupForm() {
   );
 }
 
-const BottomGradient = () => {
-  return (
-    <>
-      <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-      <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-    </>
-  );
-};
+const BottomGradient = () => (
+  <>
+    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
+    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
+  </>
+);
 
 const LabelInputContainer = ({
   children,
@@ -124,10 +136,8 @@ const LabelInputContainer = ({
 }: {
   children: React.ReactNode;
   className?: string;
-}) => {
-  return (
-    <div className={cn("flex w-full flex-col space-y-2", className)}>
-      {children}
-    </div>
-  );
-};
+}) => (
+  <div className={cn("flex w-full flex-col space-y-2", className)}>
+    {children}
+  </div>
+);
