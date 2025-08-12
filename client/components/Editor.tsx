@@ -26,6 +26,7 @@ export default function EditorPage() {
         document: doc,
       }),
     ],
+    immediatelyRender: false,
   });
   useEffect(() => {
     // Example: sending JWT token as query parameter

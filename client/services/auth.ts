@@ -36,27 +36,28 @@ function logout(): void {
 
 async function signup(credentials: SignupCredentials): Promise<AuthResponse> {
   try {
-    const res = await axios.post(
-      `${API_BASE}/auth/signup`,
-      {
-        email: credentials.email,
-        password: credentials.password,
-        username: credentials.name,
-      },
-      {
-        withCredentials: true,
-      }
-    );
+    console.log(credentials);
+
+    const res = await axios.post(`${API_BASE}/auth/signup`, {
+      email: credentials.email,
+      password: credentials.password,
+      username: credentials.name,
+    });
+    console.log(res);
 
     const { data: user } = res.data;
     saveSession(user);
 
     return { success: true, user };
   } catch (err: any) {
-    console.error("Signup error:", err.response?.data || err.message);
     return {
       success: false,
-      message: err.response?.data?.message || "Signup failed",
+      message: String(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          "Signup failed"
+      ),
     };
   }
 }
