@@ -19,14 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DocService_CreateDocument_FullMethodName = "/doc.DocService/CreateDocument"
+	DocService_CreateNewDocument_FullMethodName = "/doc.DocService/CreateNewDocument"
+	DocService_UpdateDoc_FullMethodName         = "/doc.DocService/UpdateDoc"
+	DocService_GetDoc_FullMethodName            = "/doc.DocService/GetDoc"
+	DocService_GetUserDocs_FullMethodName       = "/doc.DocService/GetUserDocs"
 )
 
 // DocServiceClient is the client API for DocService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DocServiceClient interface {
-	CreateDocument(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error)
+	CreateNewDocument(ctx context.Context, in *CreateNewDocumentRequest, opts ...grpc.CallOption) (*CreateNewDocumentResponse, error)
+	UpdateDoc(ctx context.Context, in *UpdateDocRequest, opts ...grpc.CallOption) (*UpdateDocResponse, error)
+	GetDoc(ctx context.Context, in *GetDocRequest, opts ...grpc.CallOption) (*GetDocResponse, error)
+	GetUserDocs(ctx context.Context, in *GetUserDocsRequest, opts ...grpc.CallOption) (*GetUserDocsResponse, error)
 }
 
 type docServiceClient struct {
@@ -37,10 +43,40 @@ func NewDocServiceClient(cc grpc.ClientConnInterface) DocServiceClient {
 	return &docServiceClient{cc}
 }
 
-func (c *docServiceClient) CreateDocument(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error) {
+func (c *docServiceClient) CreateNewDocument(ctx context.Context, in *CreateNewDocumentRequest, opts ...grpc.CallOption) (*CreateNewDocumentResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateDocumentResponse)
-	err := c.cc.Invoke(ctx, DocService_CreateDocument_FullMethodName, in, out, cOpts...)
+	out := new(CreateNewDocumentResponse)
+	err := c.cc.Invoke(ctx, DocService_CreateNewDocument_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *docServiceClient) UpdateDoc(ctx context.Context, in *UpdateDocRequest, opts ...grpc.CallOption) (*UpdateDocResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateDocResponse)
+	err := c.cc.Invoke(ctx, DocService_UpdateDoc_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *docServiceClient) GetDoc(ctx context.Context, in *GetDocRequest, opts ...grpc.CallOption) (*GetDocResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDocResponse)
+	err := c.cc.Invoke(ctx, DocService_GetDoc_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *docServiceClient) GetUserDocs(ctx context.Context, in *GetUserDocsRequest, opts ...grpc.CallOption) (*GetUserDocsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserDocsResponse)
+	err := c.cc.Invoke(ctx, DocService_GetUserDocs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +87,10 @@ func (c *docServiceClient) CreateDocument(ctx context.Context, in *CreateDocumen
 // All implementations must embed UnimplementedDocServiceServer
 // for forward compatibility.
 type DocServiceServer interface {
-	CreateDocument(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error)
+	CreateNewDocument(context.Context, *CreateNewDocumentRequest) (*CreateNewDocumentResponse, error)
+	UpdateDoc(context.Context, *UpdateDocRequest) (*UpdateDocResponse, error)
+	GetDoc(context.Context, *GetDocRequest) (*GetDocResponse, error)
+	GetUserDocs(context.Context, *GetUserDocsRequest) (*GetUserDocsResponse, error)
 	mustEmbedUnimplementedDocServiceServer()
 }
 
@@ -62,8 +101,17 @@ type DocServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDocServiceServer struct{}
 
-func (UnimplementedDocServiceServer) CreateDocument(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateDocument not implemented")
+func (UnimplementedDocServiceServer) CreateNewDocument(context.Context, *CreateNewDocumentRequest) (*CreateNewDocumentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNewDocument not implemented")
+}
+func (UnimplementedDocServiceServer) UpdateDoc(context.Context, *UpdateDocRequest) (*UpdateDocResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDoc not implemented")
+}
+func (UnimplementedDocServiceServer) GetDoc(context.Context, *GetDocRequest) (*GetDocResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDoc not implemented")
+}
+func (UnimplementedDocServiceServer) GetUserDocs(context.Context, *GetUserDocsRequest) (*GetUserDocsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserDocs not implemented")
 }
 func (UnimplementedDocServiceServer) mustEmbedUnimplementedDocServiceServer() {}
 func (UnimplementedDocServiceServer) testEmbeddedByValue()                    {}
@@ -86,20 +134,74 @@ func RegisterDocServiceServer(s grpc.ServiceRegistrar, srv DocServiceServer) {
 	s.RegisterService(&DocService_ServiceDesc, srv)
 }
 
-func _DocService_CreateDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateDocumentRequest)
+func _DocService_CreateNewDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateNewDocumentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DocServiceServer).CreateDocument(ctx, in)
+		return srv.(DocServiceServer).CreateNewDocument(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DocService_CreateDocument_FullMethodName,
+		FullMethod: DocService_CreateNewDocument_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DocServiceServer).CreateDocument(ctx, req.(*CreateDocumentRequest))
+		return srv.(DocServiceServer).CreateNewDocument(ctx, req.(*CreateNewDocumentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DocService_UpdateDoc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDocRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocServiceServer).UpdateDoc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocService_UpdateDoc_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocServiceServer).UpdateDoc(ctx, req.(*UpdateDocRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DocService_GetDoc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDocRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocServiceServer).GetDoc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocService_GetDoc_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocServiceServer).GetDoc(ctx, req.(*GetDocRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DocService_GetUserDocs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserDocsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocServiceServer).GetUserDocs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocService_GetUserDocs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocServiceServer).GetUserDocs(ctx, req.(*GetUserDocsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -112,8 +214,20 @@ var DocService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DocServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateDocument",
-			Handler:    _DocService_CreateDocument_Handler,
+			MethodName: "CreateNewDocument",
+			Handler:    _DocService_CreateNewDocument_Handler,
+		},
+		{
+			MethodName: "UpdateDoc",
+			Handler:    _DocService_UpdateDoc_Handler,
+		},
+		{
+			MethodName: "GetDoc",
+			Handler:    _DocService_GetDoc_Handler,
+		},
+		{
+			MethodName: "GetUserDocs",
+			Handler:    _DocService_GetUserDocs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

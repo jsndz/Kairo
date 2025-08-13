@@ -13,4 +13,8 @@ func AuthRoute(router *gin.RouterGroup, h handlers.AuthHandlers){
 
 func DocRoute(router *gin.RouterGroup, h handlers.DocHandlers){
 	router.POST("/create",h.CreateDoc)
+	router.PUT("/update/:id",h.UpdateDoc)
+	router.GET("/doc/:id",h.GetDoc)
+
+	router.GET("/:id",h.GetUserDocs)
 }

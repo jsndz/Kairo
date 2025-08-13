@@ -5,13 +5,54 @@ package doc;
 option go_package = "github.com/jsndz/kairo-proto/doc;docpb";
 
 service DocService {
-    rpc CreateDocument (CreateDocumentRequest) returns (CreateDocumentResponse);
+    rpc CreateNewDocument (CreateNewDocumentRequest) returns (CreateNewDocumentResponse);
+    rpc UpdateDoc (UpdateDocRequest) returns (UpdateDocResponse);
+    rpc GetDoc (GetDocRequest) returns (GetDocResponse);
+    rpc GetUserDocs (GetUserDocsRequest) returns (GetUserDocsResponse);
 }
 
-message CreateDocumentRequest {
-    string title = 1;
+message CreateNewDocumentRequest {
+    uint32 user_id = 1;
 }
 
-message CreateDocumentResponse {
-    string doc_id = 1;
+message CreateNewDocumentResponse {
+    Document doc =1;
+}
+
+
+
+message Document {
+    uint32 id =1;
+    uint32 user_id=2;
+    string title=3;
+    bytes current_state=4;
+    string  created_at=5;
+    string  updated_at=6;
+}
+
+
+message UpdateDocRequest {
+    uint32 id = 1; 
+    string title = 2;
+    bytes current_state = 3;
+}
+
+message UpdateDocResponse {
+    Document doc = 1;
+}
+
+message GetDocRequest {
+    uint32 id = 1;
+}
+
+message GetDocResponse {
+    Document doc = 1;
+}
+
+message GetUserDocsRequest {
+    uint32 user_id = 1;
+}
+
+message GetUserDocsResponse{
+    repeated Document docs =1;
 }

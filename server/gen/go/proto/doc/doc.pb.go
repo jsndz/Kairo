@@ -21,27 +21,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type CreateDocumentRequest struct {
+type CreateNewDocumentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	UserId        uint32                 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateDocumentRequest) Reset() {
-	*x = CreateDocumentRequest{}
+func (x *CreateNewDocumentRequest) Reset() {
+	*x = CreateNewDocumentRequest{}
 	mi := &file_proto_doc_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateDocumentRequest) String() string {
+func (x *CreateNewDocumentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateDocumentRequest) ProtoMessage() {}
+func (*CreateNewDocumentRequest) ProtoMessage() {}
 
-func (x *CreateDocumentRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateNewDocumentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_doc_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,40 +53,170 @@ func (x *CreateDocumentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateDocumentRequest.ProtoReflect.Descriptor instead.
-func (*CreateDocumentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateNewDocumentRequest.ProtoReflect.Descriptor instead.
+func (*CreateNewDocumentRequest) Descriptor() ([]byte, []int) {
 	return file_proto_doc_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateDocumentRequest) GetTitle() string {
+func (x *CreateNewDocumentRequest) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+type CreateNewDocumentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Doc           *Document              `protobuf:"bytes,1,opt,name=doc,proto3" json:"doc,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateNewDocumentResponse) Reset() {
+	*x = CreateNewDocumentResponse{}
+	mi := &file_proto_doc_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateNewDocumentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateNewDocumentResponse) ProtoMessage() {}
+
+func (x *CreateNewDocumentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateNewDocumentResponse.ProtoReflect.Descriptor instead.
+func (*CreateNewDocumentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CreateNewDocumentResponse) GetDoc() *Document {
+	if x != nil {
+		return x.Doc
+	}
+	return nil
+}
+
+type Document struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	CurrentState  []byte                 `protobuf:"bytes,4,opt,name=current_state,json=currentState,proto3" json:"current_state,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Document) Reset() {
+	*x = Document{}
+	mi := &file_proto_doc_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Document) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Document) ProtoMessage() {}
+
+func (x *Document) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Document.ProtoReflect.Descriptor instead.
+func (*Document) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Document) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Document) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *Document) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-type CreateDocumentResponse struct {
+func (x *Document) GetCurrentState() []byte {
+	if x != nil {
+		return x.CurrentState
+	}
+	return nil
+}
+
+func (x *Document) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Document) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type UpdateDocRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DocId         string                 `protobuf:"bytes,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	CurrentState  []byte                 `protobuf:"bytes,3,opt,name=current_state,json=currentState,proto3" json:"current_state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateDocumentResponse) Reset() {
-	*x = CreateDocumentResponse{}
-	mi := &file_proto_doc_proto_msgTypes[1]
+func (x *UpdateDocRequest) Reset() {
+	*x = UpdateDocRequest{}
+	mi := &file_proto_doc_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateDocumentResponse) String() string {
+func (x *UpdateDocRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateDocumentResponse) ProtoMessage() {}
+func (*UpdateDocRequest) ProtoMessage() {}
 
-func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_doc_proto_msgTypes[1]
+func (x *UpdateDocRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -97,30 +227,290 @@ func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateDocumentResponse.ProtoReflect.Descriptor instead.
-func (*CreateDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_doc_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use UpdateDocRequest.ProtoReflect.Descriptor instead.
+func (*UpdateDocRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *CreateDocumentResponse) GetDocId() string {
+func (x *UpdateDocRequest) GetId() uint32 {
 	if x != nil {
-		return x.DocId
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateDocRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
 	}
 	return ""
+}
+
+func (x *UpdateDocRequest) GetCurrentState() []byte {
+	if x != nil {
+		return x.CurrentState
+	}
+	return nil
+}
+
+type UpdateDocResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Doc           *Document              `protobuf:"bytes,1,opt,name=doc,proto3" json:"doc,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDocResponse) Reset() {
+	*x = UpdateDocResponse{}
+	mi := &file_proto_doc_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDocResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDocResponse) ProtoMessage() {}
+
+func (x *UpdateDocResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDocResponse.ProtoReflect.Descriptor instead.
+func (*UpdateDocResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdateDocResponse) GetDoc() *Document {
+	if x != nil {
+		return x.Doc
+	}
+	return nil
+}
+
+type GetDocRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDocRequest) Reset() {
+	*x = GetDocRequest{}
+	mi := &file_proto_doc_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDocRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDocRequest) ProtoMessage() {}
+
+func (x *GetDocRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDocRequest.ProtoReflect.Descriptor instead.
+func (*GetDocRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetDocRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetDocResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Doc           *Document              `protobuf:"bytes,1,opt,name=doc,proto3" json:"doc,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDocResponse) Reset() {
+	*x = GetDocResponse{}
+	mi := &file_proto_doc_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDocResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDocResponse) ProtoMessage() {}
+
+func (x *GetDocResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDocResponse.ProtoReflect.Descriptor instead.
+func (*GetDocResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetDocResponse) GetDoc() *Document {
+	if x != nil {
+		return x.Doc
+	}
+	return nil
+}
+
+type GetUserDocsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        uint32                 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserDocsRequest) Reset() {
+	*x = GetUserDocsRequest{}
+	mi := &file_proto_doc_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserDocsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserDocsRequest) ProtoMessage() {}
+
+func (x *GetUserDocsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserDocsRequest.ProtoReflect.Descriptor instead.
+func (*GetUserDocsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetUserDocsRequest) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+type GetUserDocsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Docs          []*Document            `protobuf:"bytes,1,rep,name=docs,proto3" json:"docs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserDocsResponse) Reset() {
+	*x = GetUserDocsResponse{}
+	mi := &file_proto_doc_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserDocsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserDocsResponse) ProtoMessage() {}
+
+func (x *GetUserDocsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserDocsResponse.ProtoReflect.Descriptor instead.
+func (*GetUserDocsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetUserDocsResponse) GetDocs() []*Document {
+	if x != nil {
+		return x.Docs
+	}
+	return nil
 }
 
 var File_proto_doc_proto protoreflect.FileDescriptor
 
 const file_proto_doc_proto_rawDesc = "" +
 	"\n" +
-	"\x0fproto/doc.proto\x12\x03doc\"-\n" +
-	"\x15CreateDocumentRequest\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\"/\n" +
-	"\x16CreateDocumentResponse\x12\x15\n" +
-	"\x06doc_id\x18\x01 \x01(\tR\x05docId2W\n" +
+	"\x0fproto/doc.proto\x12\x03doc\"3\n" +
+	"\x18CreateNewDocumentRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\rR\x06userId\"<\n" +
+	"\x19CreateNewDocumentResponse\x12\x1f\n" +
+	"\x03doc\x18\x01 \x01(\v2\r.doc.DocumentR\x03doc\"\xac\x01\n" +
+	"\bDocument\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\rR\x06userId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12#\n" +
+	"\rcurrent_state\x18\x04 \x01(\fR\fcurrentState\x12\x1d\n" +
 	"\n" +
-	"DocService\x12I\n" +
-	"\x0eCreateDocument\x12\x1a.doc.CreateDocumentRequest\x1a\x1b.doc.CreateDocumentResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\tR\tupdatedAt\"]\n" +
+	"\x10UpdateDocRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12#\n" +
+	"\rcurrent_state\x18\x03 \x01(\fR\fcurrentState\"4\n" +
+	"\x11UpdateDocResponse\x12\x1f\n" +
+	"\x03doc\x18\x01 \x01(\v2\r.doc.DocumentR\x03doc\"\x1f\n" +
+	"\rGetDocRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"1\n" +
+	"\x0eGetDocResponse\x12\x1f\n" +
+	"\x03doc\x18\x01 \x01(\v2\r.doc.DocumentR\x03doc\"-\n" +
+	"\x12GetUserDocsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\rR\x06userId\"8\n" +
+	"\x13GetUserDocsResponse\x12!\n" +
+	"\x04docs\x18\x01 \x03(\v2\r.doc.DocumentR\x04docs2\x91\x02\n" +
+	"\n" +
+	"DocService\x12R\n" +
+	"\x11CreateNewDocument\x12\x1d.doc.CreateNewDocumentRequest\x1a\x1e.doc.CreateNewDocumentResponse\x12:\n" +
+	"\tUpdateDoc\x12\x15.doc.UpdateDocRequest\x1a\x16.doc.UpdateDocResponse\x121\n" +
+	"\x06GetDoc\x12\x12.doc.GetDocRequest\x1a\x13.doc.GetDocResponse\x12@\n" +
+	"\vGetUserDocs\x12\x17.doc.GetUserDocsRequest\x1a\x18.doc.GetUserDocsResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
 
 var (
 	file_proto_doc_proto_rawDescOnce sync.Once
@@ -134,19 +524,36 @@ func file_proto_doc_proto_rawDescGZIP() []byte {
 	return file_proto_doc_proto_rawDescData
 }
 
-var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_doc_proto_goTypes = []any{
-	(*CreateDocumentRequest)(nil),  // 0: doc.CreateDocumentRequest
-	(*CreateDocumentResponse)(nil), // 1: doc.CreateDocumentResponse
+	(*CreateNewDocumentRequest)(nil),  // 0: doc.CreateNewDocumentRequest
+	(*CreateNewDocumentResponse)(nil), // 1: doc.CreateNewDocumentResponse
+	(*Document)(nil),                  // 2: doc.Document
+	(*UpdateDocRequest)(nil),          // 3: doc.UpdateDocRequest
+	(*UpdateDocResponse)(nil),         // 4: doc.UpdateDocResponse
+	(*GetDocRequest)(nil),             // 5: doc.GetDocRequest
+	(*GetDocResponse)(nil),            // 6: doc.GetDocResponse
+	(*GetUserDocsRequest)(nil),        // 7: doc.GetUserDocsRequest
+	(*GetUserDocsResponse)(nil),       // 8: doc.GetUserDocsResponse
 }
 var file_proto_doc_proto_depIdxs = []int32{
-	0, // 0: doc.DocService.CreateDocument:input_type -> doc.CreateDocumentRequest
-	1, // 1: doc.DocService.CreateDocument:output_type -> doc.CreateDocumentResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: doc.CreateNewDocumentResponse.doc:type_name -> doc.Document
+	2, // 1: doc.UpdateDocResponse.doc:type_name -> doc.Document
+	2, // 2: doc.GetDocResponse.doc:type_name -> doc.Document
+	2, // 3: doc.GetUserDocsResponse.docs:type_name -> doc.Document
+	0, // 4: doc.DocService.CreateNewDocument:input_type -> doc.CreateNewDocumentRequest
+	3, // 5: doc.DocService.UpdateDoc:input_type -> doc.UpdateDocRequest
+	5, // 6: doc.DocService.GetDoc:input_type -> doc.GetDocRequest
+	7, // 7: doc.DocService.GetUserDocs:input_type -> doc.GetUserDocsRequest
+	1, // 8: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
+	4, // 9: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
+	6, // 10: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
+	8, // 11: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_doc_proto_init() }
@@ -160,7 +567,7 @@ func file_proto_doc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_doc_proto_rawDesc), len(file_proto_doc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
