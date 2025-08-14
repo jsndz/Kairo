@@ -24,15 +24,19 @@ func (r *DocRepository) Create(doc *model.Document) (*model.Document ,error) {
 	return  doc,nil
 }
 
-func (r *DocRepository) GetAll(user_id uint32) (*[]model.Document, error) {
-    var docs []model.Document
 
-	err := r.db.Where(&docs, "user_id = ?", user_id).Find(&docs).Error
-    if err != nil {
-        return nil, err 
+func (r *DocRepository) GetAll(userID uint32) (*[]model.Document, error) {
+    var docs []model.Document
+    if err := r.db.
+        Select("id", "title", "user_id", "created_at", "updated_at").
+        Where("user_id = ?", userID).
+        Find(&docs).Error; err != nil {
+        return nil, err
     }
+
     return &docs, nil
 }
+
 
 func (r *DocRepository) Update(ID string,data map[string]any) (*model.Document,error){
 	var doc model.Document

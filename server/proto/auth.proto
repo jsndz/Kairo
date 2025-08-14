@@ -8,6 +8,7 @@ service AuthService {
   rpc SignUp(SignUpRequest) returns (SignUpResponse){};
   rpc SignIn(SignInRequest) returns (SignInResponse){};
   rpc Validate(ValidateRequest) returns (ValidateResponse){};
+  rpc CreateWSToken(CreateWSTokenRequest) returns (CreateWSTokenResponse){};
 }
 message SignUpRequest {
   string name = 1;
@@ -38,9 +39,20 @@ message User {
 
 
 message ValidateRequest {
+  string token=1;
 }
 
 message ValidateResponse {
   bool valid=1;
   string user_id = 2;
+}
+
+
+message CreateWSTokenRequest {
+  uint32 user_id=1;
+  uint32 doc_id=2;
+}
+
+message CreateWSTokenResponse {
+  string token=1;
 }

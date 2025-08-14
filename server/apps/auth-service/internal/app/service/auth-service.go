@@ -77,3 +77,11 @@ func (s *UserService) Authenticate(token string) (string, error) {
 func (s *UserService) GetName(ID uint)(string,error){
 	return s.userRepo.GetName(ID)
 }
+
+func (s *UserService) CreateWSToken(docId uint32,userId uint32)(string,error){
+	token,err:= utils.GenerateJWTForWS(docId,userId)
+	if err!=nil{
+		return "",err
+	}
+	return token,err
+}

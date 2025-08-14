@@ -12,6 +12,14 @@ import (
 var upgrader = websocket.Upgrader{
     ReadBufferSize:  1024,
     WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "http://localhost:3000" {
+			return true
+		}else {
+			return false
+		}
+	},
 }
 
 func wsHandler(h *app.Hub) http.HandlerFunc{

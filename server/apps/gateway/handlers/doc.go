@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -67,7 +68,8 @@ func(h *DocHandlers) GetUserDocs(ctx *gin.Context)  {
 	res,err:= h.DocClient.GetUserDocs(ctx,&docpb.GetUserDocsRequest{UserId: uint32(id)})
 
 	if err!= nil{
-		ctx.JSON(400,gin.H{"error":"Unable to get data"})
+		ctx.JSON(400,gin.H{"error":"Unable to get dataY"})
+		log.Print(err)
 		return
 	}
 	ctx.JSON(200,res)

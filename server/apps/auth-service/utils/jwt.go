@@ -22,3 +22,20 @@ func GenerateJWT(email string,userId uint32) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(jwtSecret))
 }
+
+
+func GenerateJWTForWS(docId uint32,userId uint32) (string, error) {
+	jwtSecret := os.Getenv("WS_JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal().Msg("Secret is Empty")
+	}
+	claims := jwt.MapClaims{
+		"sub"  : userId,
+		"doc_id":docId,
+		"type":"ws",
+		"exp":     time.Now().Add(time.Minute * 5).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(jwtSecret))
+}

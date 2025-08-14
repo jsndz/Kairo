@@ -299,6 +299,7 @@ func (x *User) GetEmail() string {
 
 type ValidateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -331,6 +332,13 @@ func (x *ValidateRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ValidateRequest.ProtoReflect.Descriptor instead.
 func (*ValidateRequest) Descriptor() ([]byte, []int) {
 	return file_proto_auth_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ValidateRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 type ValidateResponse struct {
@@ -408,8 +416,9 @@ const file_proto_auth_proto_rawDesc = "" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\"\x11\n" +
-	"\x0fValidateRequest\"A\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\"'\n" +
+	"\x0fValidateRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"A\n" +
 	"\x10ValidateResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId2\xb8\x01\n" +

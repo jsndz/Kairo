@@ -15,14 +15,14 @@ func main(){
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	authClient,conn:= clients.NewAuthClient()
-	defer conn.Close()
+	authClient,authconn:= clients.NewAuthClient()
+	defer authconn.Close()
 	authHandlers := handlers.AuthHandlers{
 		AuthClient: authClient,
 	}
 
-	docClient,conn:= clients.NewDocClient()
-	defer conn.Close()
+	docClient,docconn:= clients.NewDocClient()
+	defer docconn.Close()
 	docHandlers := handlers.DocHandlers{
 		DocClient: docClient,
 	}
