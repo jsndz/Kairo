@@ -22,6 +22,19 @@ export function useDoc() {
       setLoading(false);
     }
   }, [user?.id]);
+  const getDocById = useCallback(async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await docService.getDoc(id);
+      return data;
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch document");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const createDoc = useCallback(async () => {
     if (!user?.id) return;
@@ -68,5 +81,6 @@ export function useDoc() {
     fetchDocs,
     createDoc,
     updateDoc,
+    getDocById,
   };
 }

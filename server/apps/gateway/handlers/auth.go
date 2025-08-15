@@ -50,30 +50,39 @@ func(h *AuthHandlers) SignUp(ctx *gin.Context)  {
 	ctx.JSON(200,res)
 }
 
-func(h *AuthHandlers) ValidationMiddleware() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		var req authpb.ValidateRequest
-		token ,err  := ctx.Cookie("kairo_token")
-		if err!= nil{
-			ctx.JSON(400,gin.H{"error":"Unable to get cookie"})
-			ctx.Abort()
-			return
-		}
-		req.Token =token
-		res,err:= h.AuthClient.Validate(ctx.Request.Context(),&req)
+func (h *AuthHandlers) ValidationMiddleware() gin.HandlerFunc {
+    return func(ctx *gin.Context) {
 
-		if err!= nil{
-			ctx.JSON(400,gin.H{"error":"Unable to get dataX"})
-			ctx.Abort()
-			return
-		}
-		ctx.Set("user_id",res.UserId)
-		
-		ctx.Next()
-	}
+        token, err := ctx.Cookie("kairo_token")
+        if err != nil {
+            ctx.JSON(401, gin.H{"error": "Token not found"})
+            ctx.Abort()
+            return
+        }
+
+        req := authpb.ValidateRequest{Token: token}
+
+        res, err := h.AuthClient.Validate(ctx.Request.Context(), &req)
+        if err != nil {
+            ctx.JSON(401, gin.H{"error": "Invalid token"})
+            ctx.Abort()
+            return
+        }
+
+        if res.UserId == "" {
+            ctx.JSON(401, gin.H{"error": "No user ID in validation response"})
+            ctx.Abort()
+            return
+        }
+
+        ctx.Set("user_id", res.UserId)
+
+        ctx.Next()
+    }
 }
+
 func ValidateToken(authClient authpb.AuthServiceClient, token string) (*authpb.ValidateResponse, error) {
-    req := &authpb.ValidateRequest{}
+    req := &authpb.ValidateRequest{Token: token}
     ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
     defer cancel()
 

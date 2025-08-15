@@ -41,3 +41,17 @@ func (s *AuthServer) Validate(ctx context.Context, req *authpb.ValidateRequest) 
 	 res := s.h.Validate(ctx,req)
     return res, nil
 }
+
+
+func (s *AuthServer) CreateWSToken(ctx context.Context, req *authpb.CreateWSTokenRequest) (*authpb.CreateWSTokenResponse, error) {
+	res ,err:= s.h.CreateWSToken(ctx,req)
+	if err!=nil{
+		log.Println(err)
+	}
+   return res, nil
+}
+
+func (s *AuthServer) AuthenticateWS(ctx context.Context, req *authpb.AuthenticateWSRequest) (*authpb.AuthenticateWSResponse, error) {
+	res := s.h.AuthenticateWS(ctx,req)
+   return res, nil
+}

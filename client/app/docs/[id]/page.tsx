@@ -13,26 +13,26 @@ const EditPage = () => {
   const { id } = useParams();
   const docId = Number(id);
 
-  const { docs, updateDoc, fetchDocs } = useDoc();
+  const { docs, updateDoc, getDocById } = useDoc();
   const [title, setTitle] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
   const [currentState, setCurrentState] = useState<Uint8Array>(
     new Uint8Array()
   );
 
-  // Load the doc title from backend
   useEffect(() => {
-    fetchDocs();
-  }, [fetchDocs]);
-
-  useEffect(() => {
-    if (docs && docId) {
-      const doc = docs.find((d) => d.id === docId);
+    const fetchData = async () => {
+      if (!docId) return;
+      const doc = await getDocById(docId);
       if (doc) {
         setTitle(doc.title);
+        if (doc.current_state) {
+          setCurrentState(new Uint8Array(doc.current_state));
+        }
       }
-    }
-  }, [docs, docId]);
+    };
+    fetchData();
+  }, [docId, getDocById]);
 
   const handleSave = async () => {
     if (!docId) return;

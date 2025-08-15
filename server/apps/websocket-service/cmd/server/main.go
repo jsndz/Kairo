@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/jsndz/kairo/apps/websocket-service/internal/app"
+	"github.com/jsndz/kairo/pkg/env"
 )
 
 var upgrader = websocket.Upgrader{
@@ -31,9 +31,7 @@ func wsHandler(h *app.Hub) http.HandlerFunc{
 		}
 		client := &app.Client{
 			Conn: conn,
-			ID: uuid.NewString(),
 			Send: make(chan []byte),
-			
 		}
 		go client.ReadPump(h)
 		go client.WritePump()
@@ -42,8 +40,9 @@ func wsHandler(h *app.Hub) http.HandlerFunc{
 
 
 func main(){
+	env.Loadenv()
 	hub := app.Hub{
-		Rooms: make(map[string]*app.Room),
+		Rooms: make(map[uint32]*app.Room),
 	}
 	http.HandleFunc("/ws",wsHandler(&hub))
 	log.Println("Web Socket Server started on :3004")

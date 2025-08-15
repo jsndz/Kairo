@@ -25,6 +25,7 @@ func main(){
 	defer docconn.Close()
 	docHandlers := handlers.DocHandlers{
 		DocClient: docClient,
+		AuthClient: authClient,
 	}
 	
 	router.Use(cors.New(cors.Config{

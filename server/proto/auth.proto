@@ -9,6 +9,7 @@ service AuthService {
   rpc SignIn(SignInRequest) returns (SignInResponse){};
   rpc Validate(ValidateRequest) returns (ValidateResponse){};
   rpc CreateWSToken(CreateWSTokenRequest) returns (CreateWSTokenResponse){};
+  rpc AuthenticateWS(AuthenticateWSRequest) returns (AuthenticateWSResponse){};
 }
 message SignUpRequest {
   string name = 1;

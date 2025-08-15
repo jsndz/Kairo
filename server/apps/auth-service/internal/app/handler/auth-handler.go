@@ -74,7 +74,7 @@ func (h *UserHandler) CreateWSToken(ctx context.Context,req *authpb.CreateWSToke
 	},err
 }
 
-func (h *UserHandler) ValidateWS(ctx context.Context,req *authpb.AuthenticateWSRequest) (*authpb.AuthenticateWSResponse){
+func (h *UserHandler) AuthenticateWS(ctx context.Context,req *authpb.AuthenticateWSRequest) (*authpb.AuthenticateWSResponse){
 
 	user_id,doc_id,err := h.userService.AuthenticateWS(req.Token)
 

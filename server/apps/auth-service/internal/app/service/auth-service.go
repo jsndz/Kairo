@@ -57,20 +57,41 @@ func (s *UserService) Signin(Email string,Password string)(string,*model.User,er
 
 func (s *UserService) Authenticate(token string) (string, error) {
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return "", fmt.Errorf("JWT secret is not set")
+	}
+
 	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
 		return []byte(jwtSecret), nil
 	})
-	if err != nil || !parsedToken.Valid {
+	if err != nil {
+		return "", fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	if !parsedToken.Valid {
 		return "", fmt.Errorf("invalid token")
 	}
-	 claims, ok := parsedToken.Claims.(jwt.MapClaims);
-	 if !ok {
-	}
-	userid, ok := claims["id"].(string)
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", fmt.Errorf("userid is not a string")
+		return "", fmt.Errorf("invalid token claims format")
 	}
-	return userid, nil
+
+	var userID string
+	switch id := claims["id"].(type) {
+	case string:
+		userID = id
+	case float64:
+		userID = fmt.Sprintf("%.0f", id) 
+	default:
+		return "", fmt.Errorf("user ID is missing or invalid")
+	}
+
+	return userID, nil
 }
 
 
@@ -94,16 +115,17 @@ func (s *UserService) AuthenticateWS(token string) (string,string, error) {
 	if err != nil || !parsedToken.Valid {
 		return "","",  fmt.Errorf("invalid token")
 	}
-	 claims, ok := parsedToken.Claims.(jwt.MapClaims);
+	claims, ok := parsedToken.Claims.(jwt.MapClaims);
 	 if !ok {
+		return "","",fmt.Errorf("invalid coulnt claim")
 	}
-	userid, ok := claims["sub"].(string)
+	userid, ok := claims["id"].(string)
 	if !ok {
 		return "","", fmt.Errorf("userid is not a string")
 	}
 	docId, ok := claims["doc_id"].(string)
 	if !ok {
-		return "","",  fmt.Errorf("userid is not a string")
+		return "","",  fmt.Errorf("docid is not a string")
 	}
 	return userid,docId, nil
 }

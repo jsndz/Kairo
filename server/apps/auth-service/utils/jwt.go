@@ -16,7 +16,7 @@ func GenerateJWT(email string,userId uint32) (string, error) {
 	}
 	claims := jwt.MapClaims{
 		"id"  : userId,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":  time.Now().Add(time.Hour * 24).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -30,7 +30,7 @@ func GenerateJWTForWS(docId uint32,userId uint32) (string, error) {
 		log.Fatal().Msg("Secret is Empty")
 	}
 	claims := jwt.MapClaims{
-		"sub"  : userId,
+		"id"  : userId,
 		"doc_id":docId,
 		"type":"ws",
 		"exp":     time.Now().Add(time.Minute * 5).Unix(),

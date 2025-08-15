@@ -4,31 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/gorilla/websocket"
+	"github.com/jsndz/kairo/apps/websocket-service/middleware"
 )
 
 
 type Client struct{
 	Conn *websocket.Conn
-	ID string
+	UserId uint32
 	Send chan []byte
-	Room Room
+	Room *Room
 }
 
 
 type Message struct {
     Type    string `json:"type"`
     Payload json.RawMessage `json:"payload"`
-	RoomID  string `json:"roomId,omitempty"`
+	DocId uint32 `json:"roomId,omitempty"`
 }
 func (c *Client) ReadPump(h *Hub){
 	defer func(){
 		if c.Room.clients != nil{
-			c.Send <- []byte(c.ID +"disconnected")
+			c.Send <- []byte(fmt.Sprintf("%d disconnected", c.UserId))
 			if c.Room.IsEmpty() {
-				h.DeleteRoom(c.Room.ID)
-				log.Printf("Room %s deleted from hub", c.Room.ID)
+				h.DeleteRoom(c.Room.DocId)
+				log.Printf("Room %d deleted from hub", c.Room.DocId)
 			}		
 		}
 		c.Conn.Close()
@@ -64,15 +66,34 @@ func (c *Client) WritePump(){
 func HandleEvents( message Message, c *Client, h *Hub) {
 	switch message.Type {
 	case "join":{
-		room:=h.GetOrCreateRoom(message.RoomID)
+		var joinPayload struct {
+			Token string `json:"token"`
+			DocID uint32 `json:"doc_id"`
+		  }
+		  if err := json.Unmarshal(message.Payload, &joinPayload); err != nil {
+			return
+		  }
+		  
+		userId,err := middleware.Authenticate(joinPayload.Token)
+		if err != nil {
+			c.Conn.WriteMessage(websocket.TextMessage, []byte("Authentication failed"))
+			return
+		}
+		parsedUserId, err := strconv.ParseUint(userId, 10, 32)
+		if err != nil {
+			c.Conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
+			return
+		}
+		c.UserId = uint32(parsedUserId)
+		room:= h.GetOrCreateRoom(joinPayload.DocID)
 		room.AddClient(c)
-		c.Send <- []byte("You have joined the room: " + message.RoomID)
-		room.Broadcast(c.ID,[]byte(c.ID+" joined the Room."))
-		log.Printf("Client %s joined room %s", c.ID, message.RoomID)
+		c.Room=room
+		c.Send<-[]byte(fmt.Sprintf("Joined room %d",joinPayload.DocID))
+		room.Broadcast(c.UserId, []byte(fmt.Sprintf("%d joined the Room.", c.UserId)))
 	}
 	case "offer":{
-		room:=h.GetOrCreateRoom(message.RoomID)
-		room.Broadcast(c.ID,[]byte(c.ID+" Sent a Offer."))
+		room:=h.GetOrCreateRoom(message.DocId)
+		room.Broadcast((c.UserId), []byte(fmt.Sprintf("%d Sent an Offer.", c.UserId)))
 	}
 	default:
 		log.Println("Unknown message type:", message.Type)

@@ -7,26 +7,26 @@ import (
 
 
 type Room struct{
-	ID string
-	clients map[string]*Client 
+	DocId uint32
+	clients map[uint32]*Client 
 	mutex sync.Mutex
 }
 
 func (r *Room) AddClient(client *Client) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.clients[client.ID]= client
+	r.clients[client.UserId]= client
 }
 
 
 func (r *Room) RemoveCLient(client *Client) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	delete(r.clients,client.ID)
+	delete(r.clients,client.UserId)
 }
 
 
-func (r *Room) Broadcast(userID string,msg []byte) {
+func (r *Room) Broadcast(userID uint32,msg []byte) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for id,client:= range r.clients{

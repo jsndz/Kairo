@@ -54,7 +54,8 @@ async function getDoc(id: number): Promise<Docs | null> {
     const res = await axios.get(`${API_BASE}/doc/${id}`, {
       withCredentials: true,
     });
-    return res.data.doc;
+    localStorage.setItem("ws_token", res.data.ws_token);
+    return res.data.document;
   } catch {
     return null;
   }

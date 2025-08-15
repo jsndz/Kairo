@@ -36,18 +36,14 @@ export default function EditorPage({ onChangeState }: EditorPageProps) {
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:3004/ws");
     ws.onopen = () => {
-      const token = document.cookie
-        .split(";")
-        .find((row) => row.startsWith("token="))
-        ?.split("=")[1];
+      const token = localStorage.getItem("ws_token");
       console.log(id);
-      console.log("token", token);
+      console.log("kairo_ws_token", token);
 
       ws.send(
         JSON.stringify({
           type: "join",
-          token: token,
-          doc_id: id,
+          payload: { token, doc_id: parseInt(id!) },
         })
       );
     };
