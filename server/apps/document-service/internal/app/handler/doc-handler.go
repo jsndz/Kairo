@@ -14,8 +14,8 @@ type DocHandler struct{
 	DocService *service.DocService
 }
 
-func NewDocHandler(db *gorm.DB) * DocHandler {
-	return &DocHandler{
+func NewDocHandler(db *gorm.DB,) * DocHandler {
+	return &DocHandler{ 
 		DocService: service.NewDocService(db),
 	}
 }

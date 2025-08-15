@@ -393,6 +393,206 @@ func (x *ValidateResponse) GetUserId() string {
 	return ""
 }
 
+type CreateWSTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        uint32                 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DocId         uint32                 `protobuf:"varint,2,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateWSTokenRequest) Reset() {
+	*x = CreateWSTokenRequest{}
+	mi := &file_proto_auth_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateWSTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWSTokenRequest) ProtoMessage() {}
+
+func (x *CreateWSTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWSTokenRequest.ProtoReflect.Descriptor instead.
+func (*CreateWSTokenRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CreateWSTokenRequest) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *CreateWSTokenRequest) GetDocId() uint32 {
+	if x != nil {
+		return x.DocId
+	}
+	return 0
+}
+
+type CreateWSTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateWSTokenResponse) Reset() {
+	*x = CreateWSTokenResponse{}
+	mi := &file_proto_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateWSTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWSTokenResponse) ProtoMessage() {}
+
+func (x *CreateWSTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWSTokenResponse.ProtoReflect.Descriptor instead.
+func (*CreateWSTokenResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CreateWSTokenResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type AuthenticateWSRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthenticateWSRequest) Reset() {
+	*x = AuthenticateWSRequest{}
+	mi := &file_proto_auth_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthenticateWSRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthenticateWSRequest) ProtoMessage() {}
+
+func (x *AuthenticateWSRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthenticateWSRequest.ProtoReflect.Descriptor instead.
+func (*AuthenticateWSRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AuthenticateWSRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type AuthenticateWSResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
+	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DocId         uint32                 `protobuf:"varint,3,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthenticateWSResponse) Reset() {
+	*x = AuthenticateWSResponse{}
+	mi := &file_proto_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthenticateWSResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthenticateWSResponse) ProtoMessage() {}
+
+func (x *AuthenticateWSResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthenticateWSResponse.ProtoReflect.Descriptor instead.
+func (*AuthenticateWSResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AuthenticateWSResponse) GetValid() bool {
+	if x != nil {
+		return x.Valid
+	}
+	return false
+}
+
+func (x *AuthenticateWSResponse) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *AuthenticateWSResponse) GetDocId() uint32 {
+	if x != nil {
+		return x.DocId
+	}
+	return 0
+}
+
 var File_proto_auth_proto protoreflect.FileDescriptor
 
 const file_proto_auth_proto_rawDesc = "" +
@@ -421,11 +621,23 @@ const file_proto_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"A\n" +
 	"\x10ValidateResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId2\xb8\x01\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"F\n" +
+	"\x14CreateWSTokenRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\rR\x06userId\x12\x15\n" +
+	"\x06doc_id\x18\x02 \x01(\rR\x05docId\"-\n" +
+	"\x15CreateWSTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"-\n" +
+	"\x15AuthenticateWSRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"^\n" +
+	"\x16AuthenticateWSResponse\x12\x14\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\rR\x06userId\x12\x15\n" +
+	"\x06doc_id\x18\x03 \x01(\rR\x05docId2\x84\x02\n" +
 	"\vAuthService\x125\n" +
 	"\x06SignUp\x12\x13.auth.SignUpRequest\x1a\x14.auth.SignUpResponse\"\x00\x125\n" +
 	"\x06SignIn\x12\x13.auth.SignInRequest\x1a\x14.auth.SignInResponse\"\x00\x12;\n" +
-	"\bValidate\x12\x15.auth.ValidateRequest\x1a\x16.auth.ValidateResponse\"\x00B*Z(github.com/jsndz/kairo-proto/auth;authpbb\x06proto3"
+	"\bValidate\x12\x15.auth.ValidateRequest\x1a\x16.auth.ValidateResponse\"\x00\x12J\n" +
+	"\rCreateWSToken\x12\x1a.auth.CreateWSTokenRequest\x1a\x1b.auth.CreateWSTokenResponse\"\x00B*Z(github.com/jsndz/kairo-proto/auth;authpbb\x06proto3"
 
 var (
 	file_proto_auth_proto_rawDescOnce sync.Once
@@ -439,15 +651,19 @@ func file_proto_auth_proto_rawDescGZIP() []byte {
 	return file_proto_auth_proto_rawDescData
 }
 
-var file_proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_auth_proto_goTypes = []any{
-	(*SignUpRequest)(nil),    // 0: auth.SignUpRequest
-	(*SignUpResponse)(nil),   // 1: auth.SignUpResponse
-	(*SignInRequest)(nil),    // 2: auth.SignInRequest
-	(*SignInResponse)(nil),   // 3: auth.SignInResponse
-	(*User)(nil),             // 4: auth.User
-	(*ValidateRequest)(nil),  // 5: auth.ValidateRequest
-	(*ValidateResponse)(nil), // 6: auth.ValidateResponse
+	(*SignUpRequest)(nil),          // 0: auth.SignUpRequest
+	(*SignUpResponse)(nil),         // 1: auth.SignUpResponse
+	(*SignInRequest)(nil),          // 2: auth.SignInRequest
+	(*SignInResponse)(nil),         // 3: auth.SignInResponse
+	(*User)(nil),                   // 4: auth.User
+	(*ValidateRequest)(nil),        // 5: auth.ValidateRequest
+	(*ValidateResponse)(nil),       // 6: auth.ValidateResponse
+	(*CreateWSTokenRequest)(nil),   // 7: auth.CreateWSTokenRequest
+	(*CreateWSTokenResponse)(nil),  // 8: auth.CreateWSTokenResponse
+	(*AuthenticateWSRequest)(nil),  // 9: auth.AuthenticateWSRequest
+	(*AuthenticateWSResponse)(nil), // 10: auth.AuthenticateWSResponse
 }
 var file_proto_auth_proto_depIdxs = []int32{
 	4, // 0: auth.SignUpResponse.user:type_name -> auth.User
@@ -455,11 +671,13 @@ var file_proto_auth_proto_depIdxs = []int32{
 	0, // 2: auth.AuthService.SignUp:input_type -> auth.SignUpRequest
 	2, // 3: auth.AuthService.SignIn:input_type -> auth.SignInRequest
 	5, // 4: auth.AuthService.Validate:input_type -> auth.ValidateRequest
-	1, // 5: auth.AuthService.SignUp:output_type -> auth.SignUpResponse
-	3, // 6: auth.AuthService.SignIn:output_type -> auth.SignInResponse
-	6, // 7: auth.AuthService.Validate:output_type -> auth.ValidateResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	7, // 5: auth.AuthService.CreateWSToken:input_type -> auth.CreateWSTokenRequest
+	1, // 6: auth.AuthService.SignUp:output_type -> auth.SignUpResponse
+	3, // 7: auth.AuthService.SignIn:output_type -> auth.SignInResponse
+	6, // 8: auth.AuthService.Validate:output_type -> auth.ValidateResponse
+	8, // 9: auth.AuthService.CreateWSToken:output_type -> auth.CreateWSTokenResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -476,7 +694,7 @@ func file_proto_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_auth_proto_rawDesc), len(file_proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

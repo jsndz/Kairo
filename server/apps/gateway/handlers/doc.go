@@ -5,12 +5,14 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	authpb "github.com/jsndz/kairo/gen/go/proto/auth"
 	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
 )
 
 
 type DocHandlers struct{
 	DocClient docpb.DocServiceClient
+	AuthClient authpb.AuthServiceClient
 }
 
 
@@ -66,7 +68,6 @@ func(h *DocHandlers) GetUserDocs(ctx *gin.Context)  {
 	
 
 	res,err:= h.DocClient.GetUserDocs(ctx,&docpb.GetUserDocsRequest{UserId: uint32(id)})
-
 	if err!= nil{
 		ctx.JSON(400,gin.H{"error":"Unable to get dataY"})
 		log.Print(err)
@@ -82,8 +83,26 @@ func(h *DocHandlers) GetDoc(ctx *gin.Context)  {
 		ctx.JSON(400, gin.H{"error": "Invalid ID"})
 		return
 	}
-	res,err:= h.DocClient.GetDoc(ctx,&docpb.GetDocRequest{Id: uint32(id)})
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
 
+	userIDUint, ok := userID.(uint32)
+	if !ok {
+		ctx.JSON(400, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	res,err:= h.DocClient.GetDoc(ctx,&docpb.GetDocRequest{Id: uint32(id)})
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Unable to get document"})
+		return
+	}
+	
+	token ,err := h.AuthClient.CreateWSToken(ctx,&authpb.CreateWSTokenRequest{UserId: userIDUint,DocId: uint32(id)})
+	ctx.SetCookie("kairo_ws_token", token.Token, 300, "/", "", false, true)
 	if err!= nil{
 		ctx.JSON(400,gin.H{"error":"Unable to get data"})
 		return

@@ -56,3 +56,15 @@ message CreateWSTokenRequest {
 message CreateWSTokenResponse {
   string token=1;
 }
+
+
+
+message AuthenticateWSRequest {
+  string token=1;
+}
+
+message AuthenticateWSResponse {
+  bool valid=1;
+  uint32 user_id=2;
+  uint32 doc_id=3;
+}

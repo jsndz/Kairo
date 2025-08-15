@@ -23,6 +23,7 @@ func main(){
     database,err := db.InitDB(dsn)
 	db.MigrateDB(database,model.Document{},model.DocumentUpdate{})
 	lis,err:= net.Listen("tcp",":3002")
+	
 
 	if err!= nil{
 		log.Fatalf("Failed to listen: %v", err)

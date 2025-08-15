@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 var jwtSecret = os.Getenv("JWT_SECRET")
-
+var wsjwtSecret = os.Getenv("WS_JWT_SECRET")
 
 type UserService struct {
 	userRepo   *repos.UserRepository
@@ -84,4 +84,26 @@ func (s *UserService) CreateWSToken(docId uint32,userId uint32)(string,error){
 		return "",err
 	}
 	return token,err
+}
+
+func (s *UserService) AuthenticateWS(token string) (string,string, error) {
+
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		return []byte(wsjwtSecret), nil
+	})
+	if err != nil || !parsedToken.Valid {
+		return "","",  fmt.Errorf("invalid token")
+	}
+	 claims, ok := parsedToken.Claims.(jwt.MapClaims);
+	 if !ok {
+	}
+	userid, ok := claims["sub"].(string)
+	if !ok {
+		return "","", fmt.Errorf("userid is not a string")
+	}
+	docId, ok := claims["doc_id"].(string)
+	if !ok {
+		return "","",  fmt.Errorf("userid is not a string")
+	}
+	return userid,docId, nil
 }

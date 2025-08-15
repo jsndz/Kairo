@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
-	"strings"
+
+	"strconv"
 
 	"github.com/jsndz/kairo/apps/auth-service/internal/app/model"
 	"github.com/jsndz/kairo/apps/auth-service/internal/app/service"
 	authpb "github.com/jsndz/kairo/gen/go/proto/auth"
-	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
 )
 
@@ -64,24 +64,46 @@ func (h *UserHandler) SignIn(ctx context.Context,req *authpb.SignInRequest)(*aut
 	},err
 }
 
-
-func (h *UserHandler) Validate(ctx context.Context,req *authpb.ValidateRequest) (*authpb.ValidateResponse){
-	md,ok:= metadata.FromIncomingContext(ctx)
-	if !ok{
-		return &authpb.ValidateResponse{
-			Valid: false,
-			UserId: "",
-		} 
+func (h *UserHandler) CreateWSToken(ctx context.Context,req *authpb.CreateWSTokenRequest)(*authpb.CreateWSTokenResponse,error){
+	token,err := h.userService.CreateWSToken(req.DocId,req.UserId)
+	if err != nil {
+		return &authpb.CreateWSTokenResponse{}, err
 	}
-	authHeader := md["authorization"]
-	if len(authHeader) == 0 {
-		return &authpb.ValidateResponse{
+	return &authpb.CreateWSTokenResponse{
+		Token: token,
+	},err
+}
+
+func (h *UserHandler) ValidateWS(ctx context.Context,req *authpb.AuthenticateWSRequest) (*authpb.AuthenticateWSResponse){
+
+	user_id,doc_id,err := h.userService.AuthenticateWS(req.Token)
+
+	if err != nil {
+		return &authpb.AuthenticateWSResponse{
 			Valid: false,
-			UserId: "",
+			UserId: 0,
+			DocId: 0,
 		}
 	}
-	token := strings.TrimPrefix(authHeader[0], "Bearer ")
-	user_id,err := h.userService.Authenticate(token)
+	return  &authpb.AuthenticateWSResponse{
+		Valid: true,
+		UserId: func() uint32 {
+			id, _ := strconv.ParseUint(user_id, 10, 32)
+			return uint32(id)
+		}(),
+		DocId: func() uint32 {
+			id, _ := strconv.ParseUint(doc_id, 10, 32)
+			return uint32(id)
+		}(),
+	}
+
+
+}
+
+func (h *UserHandler) Validate(ctx context.Context,req *authpb.ValidateRequest) (*authpb.ValidateResponse){
+	
+	
+	user_id,err := h.userService.Authenticate(req.Token)
 
 	if err != nil {
 		return &authpb.ValidateResponse{
