@@ -19,7 +19,7 @@ func (r *Room) AddClient(client *Client) {
 }
 
 
-func (r *Room) RemoveCLient(client *Client) {
+func (r *Room) RemoveClient(client *Client) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	delete(r.clients,client.UserId)

@@ -105,7 +105,10 @@ const EditPage = () => {
       <section className="flex-1 p-6 overflow-auto">
         <Card className="w-full h-full shadow-md">
           <CardContent className="p-4 h-full">
-            <EditorPage onChangeState={setCurrentState} />
+            <EditorPage
+              CurrentState={currentState}
+              onChangeState={setCurrentState}
+            />
           </CardContent>
         </Card>
       </section>
