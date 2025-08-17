@@ -60,17 +60,24 @@ export default function EditorPage({
       };
 
       ws.onmessage = (event) => {
-        console.log("Message from server:", event.data);
+        console.log(typeof event.data);
 
-        const msg = event.data;
-        console.log("msg RAW", msg);
-        console.log("hello", msg.type);
-        console.log(msg.payload);
-        if (msg.type === "update" && editor) {
-          console.log(msg.type);
-          console.log(msg.payload);
+        if (typeof event.data === "string") {
+          const msg = JSON.parse(event.data);
+          console.log("dd", event.data);
+          const str = event.data;
+          const obj = JSON.parse(str);
 
-          Y.applyUpdate(doc, msg.payload);
+          const values = Object.values(obj);
+
+          const uint8 = new Uint8Array(values as number[]);
+
+          console.log(uint8);
+          Y.applyUpdate(doc, uint8);
+        } else {
+          console.log(event.data);
+
+          Y.applyUpdate(doc, event.data);
         }
       };
 

@@ -62,52 +62,56 @@ func (c *Client) WritePump(){
 }
 
 
-func HandleEvents( message Message, c *Client, h *Hub) {
+func HandleEvents(message Message, c *Client, h *Hub) {
 	switch message.Type {
-	case "join":{
+	case "join":
 		var joinPayload struct {
 			Token string `json:"token"`
 			DocID uint32 `json:"doc_id"`
-		  }
-		  if err := json.Unmarshal(message.Payload, &joinPayload); err != nil {
-			return
-		  }
-		  
-		userId,err := middleware.Authenticate(joinPayload.Token)
-		if err != nil {
-			c.Conn.WriteMessage(websocket.TextMessage, []byte("Authentication failed"))
+		}
+		if err := json.Unmarshal(message.Payload, &joinPayload); err != nil {
 			return
 		}
+
+		userId, err := middleware.Authenticate(joinPayload.Token)
+		if err != nil {
+			c.SendJSON("error", "Authentication failed", 0)
+			return
+		}
+
 		parsedUserId, err := strconv.ParseUint(userId, 10, 32)
 		if err != nil {
-			c.Conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
+			c.SendJSON("error", "Invalid user ID", 0)
 			return
 		}
+
 		c.UserId = uint32(parsedUserId)
-		room:= h.GetOrCreateRoom(joinPayload.DocID)
+		room := h.GetOrCreateRoom(joinPayload.DocID)
 		room.AddClient(c)
-		c.Room=room
-		c.Send<-[]byte(fmt.Sprintf("Joined room %d",joinPayload.DocID))
+		c.Room = room
+
+		c.SendJSON("join", fmt.Sprintf("Joined room %d", joinPayload.DocID), joinPayload.DocID)
+
 		c.Room.mutex.Lock()
 		for _, u := range c.Room.updates {
-			c.Send <- u
+			c.Send <- u 
 		}
 		c.Room.mutex.Unlock()
-		room.Broadcast(c.UserId, []byte(fmt.Sprintf("%d joined the Room.", c.UserId)))
-	}
-	case "update":{	
-		log.Println(message.Type)
-		log.Println(message.Payload)
+
+		room.Broadcast(c.UserId, mustMarshal(fmt.Sprintf("%d joined the Room.", c.UserId)))
+
+	case "update":
 		c.Room.mutex.Lock()
-		c.Room.updates = append(c.Room.updates, (message.Payload))
+		c.Room.updates = append(c.Room.updates, message.Payload)
 		c.Room.mutex.Unlock()
-		log.Println("Update sending",message.Payload)
-		c.Room.Broadcast(c.UserId,message.Payload)
-	}
+
+		c.Room.Broadcast(c.UserId, message.Payload)
+
 	default:
-		log.Println("Unknown message type:", message.Type)
+		c.SendJSON("error", "Unknown message type", 0)
 	}
 }
+
 
 
 
