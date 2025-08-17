@@ -29,14 +29,6 @@ export default function EditorPage({
     setIsMounted(true);
   }, []);
 
-  const decoded = new TextDecoder().decode(CurrentState || new Uint8Array());
-  let parsed: any = null;
-  try {
-    parsed = decoded ? JSON.parse(decoded) : null;
-  } catch (e) {
-    console.warn("Invalid JSON in CurrentState:", e);
-  }
-
   const doc_id = parseInt(id!);
 
   const editor = useEditor({
@@ -49,25 +41,6 @@ export default function EditorPage({
       }),
     ],
     immediatelyRender: false,
-    content: decoded,
-    onUpdate: ({ editor }) => {
-      const json = editor.getJSON();
-      console.log("Editor updated:", json);
-
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            type: "update",
-            payload: { doc_id, state: json },
-          })
-        );
-      }
-
-      if (onChangeState) {
-        const encoded = new TextEncoder().encode(JSON.stringify(json));
-        onChangeState(encoded);
-      }
-    },
   });
 
   useEffect(() => {
@@ -89,13 +62,15 @@ export default function EditorPage({
       ws.onmessage = (event) => {
         console.log("Message from server:", event.data);
 
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === "update" && editor) {
-            editor.commands.setContent(msg.payload.state);
-          }
-        } catch (e) {
-          console.warn("Invalid WS message:", event.data);
+        const msg = event.data;
+        console.log("msg RAW", msg);
+        console.log("hello", msg.type);
+        console.log(msg.payload);
+        if (msg.type === "update" && editor) {
+          console.log(msg.type);
+          console.log(msg.payload);
+
+          Y.applyUpdate(doc, msg.payload);
         }
       };
 
@@ -108,6 +83,31 @@ export default function EditorPage({
     return () => {
       wsRef.current?.close();
       wsRef.current = null;
+    };
+  }, [doc_id]);
+  useEffect(() => {
+    if (CurrentState && CurrentState.length > 0) {
+      Y.applyUpdate(doc, CurrentState);
+    }
+    const updateHandler = (update: Uint8Array) => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        console.log(update, typeof update);
+
+        wsRef.current.send(
+          JSON.stringify({
+            type: "update",
+            payload: update,
+          })
+        );
+      }
+
+      if (onChangeState) {
+        onChangeState(update);
+      }
+    };
+    doc.on("update", updateHandler);
+    return () => {
+      doc.off("update", updateHandler);
     };
   }, [doc_id]);
 

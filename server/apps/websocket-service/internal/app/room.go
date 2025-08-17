@@ -10,6 +10,7 @@ type Room struct{
 	DocId uint32
 	clients map[uint32]*Client 
 	mutex sync.Mutex
+	updates [][]byte
 }
 
 func (r *Room) AddClient(client *Client) {

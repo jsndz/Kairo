@@ -31,7 +31,7 @@ func wsHandler(h *app.Hub) http.HandlerFunc{
 		}
 		client := &app.Client{
 			Conn: conn,
-			Send: make(chan []byte),
+			Send: make(chan []byte,256),
 		}
 		go client.ReadPump(h)
 		go client.WritePump()

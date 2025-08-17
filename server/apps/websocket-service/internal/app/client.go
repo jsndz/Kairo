@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/websocket"
+	"github.com/jsndz/kairo/apps/websocket-service/middleware"
 )
 
 
@@ -27,14 +26,12 @@ type Message struct {
 }
 func (c *Client) ReadPump(h *Hub){
 	defer func(){
-		if c.Room.clients != nil{
+		if c.Room.clients != nil && c.Room!=nil{
 			c.Send <- []byte(fmt.Sprintf("%d disconnected", c.UserId))
-			c.Room.RemoveClient(c)
 			if c.Room.IsEmpty() {
 				h.DeleteRoom(c.Room.DocId)
 				log.Printf("Room %d deleted from hub", c.Room.DocId)
-			}	
-			close(c.Send)
+			}		
 		}
 		c.Conn.Close()
 	}()
@@ -50,7 +47,6 @@ func (c *Client) ReadPump(h *Hub){
 			log.Println("Error unmarshalling message:", err)
 			continue
 		}
-		fmt.Printf("Message received: %v\n", message)
 		HandleEvents(message, c, h)
 	}
 }
@@ -72,16 +68,42 @@ func HandleEvents( message Message, c *Client, h *Hub) {
 		var joinPayload struct {
 			Token string `json:"token"`
 			DocID uint32 `json:"doc_id"`
-		}
-		if err := json.Unmarshal(message.Payload, &joinPayload); err != nil {
+		  }
+		  if err := json.Unmarshal(message.Payload, &joinPayload); err != nil {
 			return
-		}  
-		err := Authenticate(joinPayload.Token,c,h,joinPayload.DocID)
-		log.Println(err)
-		
+		  }
+		  
+		userId,err := middleware.Authenticate(joinPayload.Token)
+		if err != nil {
+			c.Conn.WriteMessage(websocket.TextMessage, []byte("Authentication failed"))
+			return
+		}
+		parsedUserId, err := strconv.ParseUint(userId, 10, 32)
+		if err != nil {
+			c.Conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
+			return
+		}
+		c.UserId = uint32(parsedUserId)
+		room:= h.GetOrCreateRoom(joinPayload.DocID)
+		room.AddClient(c)
+		c.Room=room
+		c.Send<-[]byte(fmt.Sprintf("Joined room %d",joinPayload.DocID))
+		c.Room.mutex.Lock()
+		for _, u := range c.Room.updates {
+			c.Send <- u
+		}
+		c.Room.mutex.Unlock()
+		room.Broadcast(c.UserId, []byte(fmt.Sprintf("%d joined the Room.", c.UserId)))
 	}
-	case "update":
+	case "update":{	
+		log.Println(message.Type)
+		log.Println(message.Payload)
+		c.Room.mutex.Lock()
+		c.Room.updates = append(c.Room.updates, (message.Payload))
+		c.Room.mutex.Unlock()
+		log.Println("Update sending",message.Payload)
 		c.Room.Broadcast(c.UserId,message.Payload)
+	}
 	default:
 		log.Println("Unknown message type:", message.Type)
 	}
@@ -89,40 +111,24 @@ func HandleEvents( message Message, c *Client, h *Hub) {
 
 
 
-func Authenticate(token string,c *Client,h *Hub,DocID uint32) (error) {
-	wsjwtSecret := os.Getenv("WS_JWT_SECRET")
-	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-		return []byte(wsjwtSecret), nil
-	})
-	log.Println(err)
-	if err != nil || !parsedToken.Valid {
-		return  fmt.Errorf("invalid token")
-	}
-	claims, ok := parsedToken.Claims.(jwt.MapClaims);
-	if !ok {
-   }
-   var userID string
+func (c *Client) SendJSON(msgType string, payload interface{}, roomId uint32) {
+    msg, err := json.Marshal(Message{
+        Type:    msgType,
+        Payload: mustMarshal(payload),
+        DocId:   roomId,
+    })
+    if err != nil {
+        log.Println("failed to marshal message:", err)
+        return
+    }
+    c.Send <- msg
+}
 
-   switch id := claims["id"].(type) {
-	case string:
-		userID = id
-	case float64:
-		userID = fmt.Sprintf("%.0f", id) 
-	default:
-		return  fmt.Errorf("user ID is missing or invalid")
-	}
-	if err != nil {
-		c.Conn.WriteMessage(websocket.TextMessage, []byte("Authentication failed"))
-		
-	}
-	parsedUserId, err := strconv.ParseUint(userID, 10, 32)
-	if err != nil {
-		c.Conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
-		
-	}
-	c.UserId = uint32(parsedUserId)
-	room:= h.GetOrCreateRoom(DocID)
-	room.AddClient(c)
-	c.Room=room
-	return nil
+func mustMarshal(v interface{}) json.RawMessage {
+    b, err := json.Marshal(v)
+    if err != nil {
+        log.Println("marshal error:", err)
+        return nil
+    }
+    return b
 }

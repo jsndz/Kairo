@@ -55,7 +55,8 @@ async function getDoc(id: number): Promise<Docs | null> {
       withCredentials: true,
     });
     localStorage.setItem("ws_token", res.data.ws_token);
-    return res.data.document;
+    // return res.data.document;
+    return null;
   } catch {
     return null;
   }
