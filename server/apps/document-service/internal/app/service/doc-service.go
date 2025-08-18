@@ -28,7 +28,11 @@ func (s *DocService) CreateDoc(doc *model.Document) (*model.Document,error){
 
 
 func (s *DocService) UpdateDoc(docId uint32,doc *model.Document)(*model.Document,error){
-	doc,err := s.UpdateDoc(docId,doc)
+	data := map[string]any{
+        "title": doc.Title,
+        "current_state": doc.CurrentState,
+    }
+	doc,err := s.docRepo.Update(docId,data)
 	if err!=nil{
 		return nil,err
 	}
@@ -51,3 +55,13 @@ func (s *DocService) GetUserDocs(user_id uint32)(*[]model.Document,error){
 	return docs,nil
 }
  
+
+func (s *DocService) ChangeTitle(doc_id uint32,new_title string) (string, error) {
+    doc, err := s.docRepo.Update(doc_id, map[string]interface{}{
+        "title": new_title,
+    })
+    if err != nil {
+        return "", err
+    }
+    return doc.Title, nil
+}

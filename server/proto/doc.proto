@@ -9,6 +9,8 @@ service DocService {
     rpc UpdateDoc (UpdateDocRequest) returns (UpdateDocResponse);
     rpc GetDoc (GetDocRequest) returns (GetDocResponse);
     rpc GetUserDocs (GetUserDocsRequest) returns (GetUserDocsResponse);
+    rpc ChangeDocName (ChangeDocNameRequest) returns (ChangeDocNameResponse);
+
 }
 
 message CreateNewDocumentRequest {
@@ -18,8 +20,6 @@ message CreateNewDocumentRequest {
 message CreateNewDocumentResponse {
     Document doc =1;
 }
-
-
 
 message Document {
     uint32 id =1;
@@ -55,4 +55,14 @@ message GetUserDocsRequest {
 
 message GetUserDocsResponse{
     repeated Document docs =1;
+}
+
+message ChangeDocNameRequest {
+    uint32 doc_id = 1;
+    string new_title = 2; 
+}
+
+message ChangeDocNameResponse{
+    string new_title = 1;
+
 }

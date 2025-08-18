@@ -84,3 +84,15 @@ func (h *DocHandler) GetUserDocs(ctx context.Context,req *docpb.GetUserDocsReque
 	}
 	return resp,err
 }
+
+func (h *DocHandler) ChangeDocName(ctx context.Context,req *docpb.ChangeDocNameRequest)(*docpb.ChangeDocNameResponse,error){
+	title,err := h.DocService.ChangeTitle(req.DocId,req.NewTitle)
+	if err != nil {
+        return nil, err
+    }
+	resp:=&docpb.ChangeDocNameResponse{
+		NewTitle: title,
+	}
+	
+	return resp,err
+}

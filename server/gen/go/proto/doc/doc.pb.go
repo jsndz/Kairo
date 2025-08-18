@@ -473,6 +473,102 @@ func (x *GetUserDocsResponse) GetDocs() []*Document {
 	return nil
 }
 
+type ChangeDocNameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DocId         uint32                 `protobuf:"varint,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	NewTitle      string                 `protobuf:"bytes,2,opt,name=new_title,json=newTitle,proto3" json:"new_title,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangeDocNameRequest) Reset() {
+	*x = ChangeDocNameRequest{}
+	mi := &file_proto_doc_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangeDocNameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangeDocNameRequest) ProtoMessage() {}
+
+func (x *ChangeDocNameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangeDocNameRequest.ProtoReflect.Descriptor instead.
+func (*ChangeDocNameRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ChangeDocNameRequest) GetDocId() uint32 {
+	if x != nil {
+		return x.DocId
+	}
+	return 0
+}
+
+func (x *ChangeDocNameRequest) GetNewTitle() string {
+	if x != nil {
+		return x.NewTitle
+	}
+	return ""
+}
+
+type ChangeDocNameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewTitle      string                 `protobuf:"bytes,1,opt,name=new_title,json=newTitle,proto3" json:"new_title,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangeDocNameResponse) Reset() {
+	*x = ChangeDocNameResponse{}
+	mi := &file_proto_doc_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangeDocNameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangeDocNameResponse) ProtoMessage() {}
+
+func (x *ChangeDocNameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangeDocNameResponse.ProtoReflect.Descriptor instead.
+func (*ChangeDocNameResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ChangeDocNameResponse) GetNewTitle() string {
+	if x != nil {
+		return x.NewTitle
+	}
+	return ""
+}
+
 var File_proto_doc_proto protoreflect.FileDescriptor
 
 const file_proto_doc_proto_rawDesc = "" +
@@ -504,13 +600,19 @@ const file_proto_doc_proto_rawDesc = "" +
 	"\x12GetUserDocsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\"8\n" +
 	"\x13GetUserDocsResponse\x12!\n" +
-	"\x04docs\x18\x01 \x03(\v2\r.doc.DocumentR\x04docs2\x91\x02\n" +
+	"\x04docs\x18\x01 \x03(\v2\r.doc.DocumentR\x04docs\"J\n" +
+	"\x14ChangeDocNameRequest\x12\x15\n" +
+	"\x06doc_id\x18\x01 \x01(\rR\x05docId\x12\x1b\n" +
+	"\tnew_title\x18\x02 \x01(\tR\bnewTitle\"4\n" +
+	"\x15ChangeDocNameResponse\x12\x1b\n" +
+	"\tnew_title\x18\x01 \x01(\tR\bnewTitle2\xd9\x02\n" +
 	"\n" +
 	"DocService\x12R\n" +
 	"\x11CreateNewDocument\x12\x1d.doc.CreateNewDocumentRequest\x1a\x1e.doc.CreateNewDocumentResponse\x12:\n" +
 	"\tUpdateDoc\x12\x15.doc.UpdateDocRequest\x1a\x16.doc.UpdateDocResponse\x121\n" +
 	"\x06GetDoc\x12\x12.doc.GetDocRequest\x1a\x13.doc.GetDocResponse\x12@\n" +
-	"\vGetUserDocs\x12\x17.doc.GetUserDocsRequest\x1a\x18.doc.GetUserDocsResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
+	"\vGetUserDocs\x12\x17.doc.GetUserDocsRequest\x1a\x18.doc.GetUserDocsResponse\x12F\n" +
+	"\rChangeDocName\x12\x19.doc.ChangeDocNameRequest\x1a\x1a.doc.ChangeDocNameResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
 
 var (
 	file_proto_doc_proto_rawDescOnce sync.Once
@@ -524,7 +626,7 @@ func file_proto_doc_proto_rawDescGZIP() []byte {
 	return file_proto_doc_proto_rawDescData
 }
 
-var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_doc_proto_goTypes = []any{
 	(*CreateNewDocumentRequest)(nil),  // 0: doc.CreateNewDocumentRequest
 	(*CreateNewDocumentResponse)(nil), // 1: doc.CreateNewDocumentResponse
@@ -535,25 +637,29 @@ var file_proto_doc_proto_goTypes = []any{
 	(*GetDocResponse)(nil),            // 6: doc.GetDocResponse
 	(*GetUserDocsRequest)(nil),        // 7: doc.GetUserDocsRequest
 	(*GetUserDocsResponse)(nil),       // 8: doc.GetUserDocsResponse
+	(*ChangeDocNameRequest)(nil),      // 9: doc.ChangeDocNameRequest
+	(*ChangeDocNameResponse)(nil),     // 10: doc.ChangeDocNameResponse
 }
 var file_proto_doc_proto_depIdxs = []int32{
-	2, // 0: doc.CreateNewDocumentResponse.doc:type_name -> doc.Document
-	2, // 1: doc.UpdateDocResponse.doc:type_name -> doc.Document
-	2, // 2: doc.GetDocResponse.doc:type_name -> doc.Document
-	2, // 3: doc.GetUserDocsResponse.docs:type_name -> doc.Document
-	0, // 4: doc.DocService.CreateNewDocument:input_type -> doc.CreateNewDocumentRequest
-	3, // 5: doc.DocService.UpdateDoc:input_type -> doc.UpdateDocRequest
-	5, // 6: doc.DocService.GetDoc:input_type -> doc.GetDocRequest
-	7, // 7: doc.DocService.GetUserDocs:input_type -> doc.GetUserDocsRequest
-	1, // 8: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
-	4, // 9: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
-	6, // 10: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
-	8, // 11: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	2,  // 0: doc.CreateNewDocumentResponse.doc:type_name -> doc.Document
+	2,  // 1: doc.UpdateDocResponse.doc:type_name -> doc.Document
+	2,  // 2: doc.GetDocResponse.doc:type_name -> doc.Document
+	2,  // 3: doc.GetUserDocsResponse.docs:type_name -> doc.Document
+	0,  // 4: doc.DocService.CreateNewDocument:input_type -> doc.CreateNewDocumentRequest
+	3,  // 5: doc.DocService.UpdateDoc:input_type -> doc.UpdateDocRequest
+	5,  // 6: doc.DocService.GetDoc:input_type -> doc.GetDocRequest
+	7,  // 7: doc.DocService.GetUserDocs:input_type -> doc.GetUserDocsRequest
+	9,  // 8: doc.DocService.ChangeDocName:input_type -> doc.ChangeDocNameRequest
+	1,  // 9: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
+	4,  // 10: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
+	6,  // 11: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
+	8,  // 12: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
+	10, // 13: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_doc_proto_init() }
@@ -567,7 +673,7 @@ func file_proto_doc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_doc_proto_rawDesc), len(file_proto_doc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

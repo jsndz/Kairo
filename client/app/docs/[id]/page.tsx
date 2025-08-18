@@ -13,8 +13,8 @@ const EditPage = () => {
   const { id } = useParams();
   const docId = Number(id);
 
-  const { docs, updateDoc, getDocById } = useDoc();
-  const [title, setTitle] = useState("");
+  const { updateDoc, getDocById, changeTitle } = useDoc();
+  const [title, setTitle] = useState("LOADING");
   const [editingTitle, setEditingTitle] = useState(false);
   const [currentState, setCurrentState] = useState<Uint8Array>(
     new Uint8Array()
@@ -37,12 +37,9 @@ const EditPage = () => {
   const handleSave = async () => {
     if (!docId) return;
     await updateDoc(docId, title, currentState);
-    console.log("Document saved!");
   };
 
-  const handlePublish = () => {
-    console.log("Document published! (TODO: Implement publishing)");
-  };
+  const handlePublish = () => {};
 
   const handleRename = () => {
     setEditingTitle(true);
@@ -51,7 +48,7 @@ const EditPage = () => {
   const handleRenameSubmit = async () => {
     setEditingTitle(false);
     if (docId) {
-      await updateDoc(docId, title, currentState);
+      await changeTitle(docId, title);
     }
   };
 

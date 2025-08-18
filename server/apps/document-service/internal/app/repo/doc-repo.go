@@ -38,7 +38,7 @@ func (r *DocRepository) GetAll(userID uint32) (*[]model.Document, error) {
 }
 
 
-func (r *DocRepository) Update(ID string,data map[string]any) (*model.Document,error){
+func (r *DocRepository) Update(ID uint32,data map[string]any) (*model.Document,error){
 	var doc model.Document
 	if err:= r.db.Model(&doc).Where("id = ?", ID).Updates(data).Error; err!=nil{
 		return nil, err

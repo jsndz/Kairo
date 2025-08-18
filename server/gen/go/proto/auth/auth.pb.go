@@ -632,12 +632,13 @@ const file_proto_auth_proto_rawDesc = "" +
 	"\x16AuthenticateWSResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\rR\x06userId\x12\x15\n" +
-	"\x06doc_id\x18\x03 \x01(\rR\x05docId2\x84\x02\n" +
+	"\x06doc_id\x18\x03 \x01(\rR\x05docId2\xd3\x02\n" +
 	"\vAuthService\x125\n" +
 	"\x06SignUp\x12\x13.auth.SignUpRequest\x1a\x14.auth.SignUpResponse\"\x00\x125\n" +
 	"\x06SignIn\x12\x13.auth.SignInRequest\x1a\x14.auth.SignInResponse\"\x00\x12;\n" +
 	"\bValidate\x12\x15.auth.ValidateRequest\x1a\x16.auth.ValidateResponse\"\x00\x12J\n" +
-	"\rCreateWSToken\x12\x1a.auth.CreateWSTokenRequest\x1a\x1b.auth.CreateWSTokenResponse\"\x00B*Z(github.com/jsndz/kairo-proto/auth;authpbb\x06proto3"
+	"\rCreateWSToken\x12\x1a.auth.CreateWSTokenRequest\x1a\x1b.auth.CreateWSTokenResponse\"\x00\x12M\n" +
+	"\x0eAuthenticateWS\x12\x1b.auth.AuthenticateWSRequest\x1a\x1c.auth.AuthenticateWSResponse\"\x00B*Z(github.com/jsndz/kairo-proto/auth;authpbb\x06proto3"
 
 var (
 	file_proto_auth_proto_rawDescOnce sync.Once
@@ -666,21 +667,23 @@ var file_proto_auth_proto_goTypes = []any{
 	(*AuthenticateWSResponse)(nil), // 10: auth.AuthenticateWSResponse
 }
 var file_proto_auth_proto_depIdxs = []int32{
-	4, // 0: auth.SignUpResponse.user:type_name -> auth.User
-	4, // 1: auth.SignInResponse.user:type_name -> auth.User
-	0, // 2: auth.AuthService.SignUp:input_type -> auth.SignUpRequest
-	2, // 3: auth.AuthService.SignIn:input_type -> auth.SignInRequest
-	5, // 4: auth.AuthService.Validate:input_type -> auth.ValidateRequest
-	7, // 5: auth.AuthService.CreateWSToken:input_type -> auth.CreateWSTokenRequest
-	1, // 6: auth.AuthService.SignUp:output_type -> auth.SignUpResponse
-	3, // 7: auth.AuthService.SignIn:output_type -> auth.SignInResponse
-	6, // 8: auth.AuthService.Validate:output_type -> auth.ValidateResponse
-	8, // 9: auth.AuthService.CreateWSToken:output_type -> auth.CreateWSTokenResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4,  // 0: auth.SignUpResponse.user:type_name -> auth.User
+	4,  // 1: auth.SignInResponse.user:type_name -> auth.User
+	0,  // 2: auth.AuthService.SignUp:input_type -> auth.SignUpRequest
+	2,  // 3: auth.AuthService.SignIn:input_type -> auth.SignInRequest
+	5,  // 4: auth.AuthService.Validate:input_type -> auth.ValidateRequest
+	7,  // 5: auth.AuthService.CreateWSToken:input_type -> auth.CreateWSTokenRequest
+	9,  // 6: auth.AuthService.AuthenticateWS:input_type -> auth.AuthenticateWSRequest
+	1,  // 7: auth.AuthService.SignUp:output_type -> auth.SignUpResponse
+	3,  // 8: auth.AuthService.SignIn:output_type -> auth.SignInResponse
+	6,  // 9: auth.AuthService.Validate:output_type -> auth.ValidateResponse
+	8,  // 10: auth.AuthService.CreateWSToken:output_type -> auth.CreateWSTokenResponse
+	10, // 11: auth.AuthService.AuthenticateWS:output_type -> auth.AuthenticateWSResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_auth_proto_init() }

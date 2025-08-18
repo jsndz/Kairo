@@ -49,14 +49,29 @@ async function updateDoc(
   }
 }
 
+async function updateName(id: number, title: string): Promise<string | null> {
+  try {
+    const res = await axios.put(
+      `${API_BASE}/update/name/${id}`,
+      {
+        new_title: title,
+      },
+      { withCredentials: true }
+    );
+    return res.data.new_title;
+  } catch (err: any) {
+    return null;
+  }
+}
+
 async function getDoc(id: number): Promise<Docs | null> {
   try {
     const res = await axios.get(`${API_BASE}/doc/${id}`, {
       withCredentials: true,
     });
     localStorage.setItem("ws_token", res.data.ws_token);
-    // return res.data.document;
-    return null;
+
+    return res.data.document.doc;
   } catch {
     return null;
   }
@@ -78,4 +93,5 @@ export const docService = {
   updateDoc,
   getDoc,
   getUserDocs,
+  updateName,
 };

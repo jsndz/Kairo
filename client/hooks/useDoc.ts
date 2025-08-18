@@ -27,6 +27,7 @@ export function useDoc() {
     setError(null);
     try {
       const data = await docService.getDoc(id);
+
       return data;
     } catch (err: any) {
       setError(err.message || "Failed to fetch document");
@@ -35,7 +36,20 @@ export function useDoc() {
       setLoading(false);
     }
   }, []);
+  const changeTitle = useCallback(async (id: number, title: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await docService.updateName(id, title);
 
+      return data;
+    } catch (err: any) {
+      setError(err.message || "Failed to change name");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   const createDoc = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -78,6 +92,7 @@ export function useDoc() {
     docs,
     loading,
     error,
+    changeTitle,
     fetchDocs,
     createDoc,
     updateDoc,

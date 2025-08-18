@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_SignUp_FullMethodName        = "/auth.AuthService/SignUp"
-	AuthService_SignIn_FullMethodName        = "/auth.AuthService/SignIn"
-	AuthService_Validate_FullMethodName      = "/auth.AuthService/Validate"
-	AuthService_CreateWSToken_FullMethodName = "/auth.AuthService/CreateWSToken"
+	AuthService_SignUp_FullMethodName         = "/auth.AuthService/SignUp"
+	AuthService_SignIn_FullMethodName         = "/auth.AuthService/SignIn"
+	AuthService_Validate_FullMethodName       = "/auth.AuthService/Validate"
+	AuthService_CreateWSToken_FullMethodName  = "/auth.AuthService/CreateWSToken"
+	AuthService_AuthenticateWS_FullMethodName = "/auth.AuthService/AuthenticateWS"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -33,6 +34,7 @@ type AuthServiceClient interface {
 	SignIn(ctx context.Context, in *SignInRequest, opts ...grpc.CallOption) (*SignInResponse, error)
 	Validate(ctx context.Context, in *ValidateRequest, opts ...grpc.CallOption) (*ValidateResponse, error)
 	CreateWSToken(ctx context.Context, in *CreateWSTokenRequest, opts ...grpc.CallOption) (*CreateWSTokenResponse, error)
+	AuthenticateWS(ctx context.Context, in *AuthenticateWSRequest, opts ...grpc.CallOption) (*AuthenticateWSResponse, error)
 }
 
 type authServiceClient struct {
@@ -83,6 +85,16 @@ func (c *authServiceClient) CreateWSToken(ctx context.Context, in *CreateWSToken
 	return out, nil
 }
 
+func (c *authServiceClient) AuthenticateWS(ctx context.Context, in *AuthenticateWSRequest, opts ...grpc.CallOption) (*AuthenticateWSResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthenticateWSResponse)
+	err := c.cc.Invoke(ctx, AuthService_AuthenticateWS_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type AuthServiceServer interface {
 	SignIn(context.Context, *SignInRequest) (*SignInResponse, error)
 	Validate(context.Context, *ValidateRequest) (*ValidateResponse, error)
 	CreateWSToken(context.Context, *CreateWSTokenRequest) (*CreateWSTokenResponse, error)
+	AuthenticateWS(context.Context, *AuthenticateWSRequest) (*AuthenticateWSResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedAuthServiceServer) Validate(context.Context, *ValidateRequest
 }
 func (UnimplementedAuthServiceServer) CreateWSToken(context.Context, *CreateWSTokenRequest) (*CreateWSTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateWSToken not implemented")
+}
+func (UnimplementedAuthServiceServer) AuthenticateWS(context.Context, *AuthenticateWSRequest) (*AuthenticateWSResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthenticateWS not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -206,6 +222,24 @@ func _AuthService_CreateWSToken_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_AuthenticateWS_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthenticateWSRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AuthenticateWS(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AuthenticateWS_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AuthenticateWS(ctx, req.(*AuthenticateWSRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateWSToken",
 			Handler:    _AuthService_CreateWSToken_Handler,
+		},
+		{
+			MethodName: "AuthenticateWS",
+			Handler:    _AuthService_AuthenticateWS_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

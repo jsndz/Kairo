@@ -36,8 +36,6 @@ function logout(): void {
 
 async function signup(credentials: SignupCredentials): Promise<AuthResponse> {
   try {
-    console.log(credentials);
-
     const res = await axios.post(`${API_BASE}/auth/signup`, {
       email: credentials.email,
       password: credentials.password,
@@ -72,7 +70,6 @@ async function login(credentials: LoginCredentials): Promise<AuthResponse> {
         withCredentials: true,
       }
     );
-    console.log(res.data.user);
 
     saveSession(res.data.user);
 

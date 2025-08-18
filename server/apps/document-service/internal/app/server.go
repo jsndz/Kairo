@@ -52,3 +52,12 @@ func (s *DocServer) GetDoc(ctx context.Context, req *docpb.GetDocRequest) (*docp
 	}
 	return resp, nil
 }
+
+func (s *DocServer) ChangeDocName(ctx context.Context, req *docpb.ChangeDocNameRequest) (*docpb.ChangeDocNameResponse, error) {
+	resp, err := s.h.ChangeDocName(ctx, req)
+	if err != nil {
+		log.Println("GetDoc error:", err)
+		return nil, err
+	}
+	return resp, nil
+}

@@ -22,7 +22,6 @@ export default function EditorPage({
 }: EditorPageProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { id } = useParams<{ id: string }>();
-
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -36,9 +35,7 @@ export default function EditorPage({
       Document,
       Paragraph,
       Text,
-      Collaboration.configure({
-        document: doc,
-      }),
+      Collaboration.configure({ document: doc }),
     ],
     immediatelyRender: false,
   });
@@ -50,39 +47,26 @@ export default function EditorPage({
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("Connected to server with token:", token);
         ws.send(
           JSON.stringify({
             type: "join",
-            payload: { token: token, doc_id },
+            payload: { token, doc_id },
           })
         );
       };
 
       ws.onmessage = (event) => {
-        console.log(typeof event.data);
-
         if (typeof event.data === "string") {
-          const msg = JSON.parse(event.data);
-          console.log("dd", event.data);
-          const str = event.data;
-          const obj = JSON.parse(str);
-
+          const obj = JSON.parse(event.data);
           const values = Object.values(obj);
-
           const uint8 = new Uint8Array(values as number[]);
-
-          console.log(uint8);
           Y.applyUpdate(doc, uint8);
         } else {
-          console.log(event.data);
-
-          Y.applyUpdate(doc, event.data);
+          Y.applyUpdate(doc, event.data as Uint8Array);
         }
       };
 
       ws.onclose = () => {
-        console.log("WebSocket closed, cleaning up");
         wsRef.current = null;
       };
     }
@@ -92,14 +76,14 @@ export default function EditorPage({
       wsRef.current = null;
     };
   }, [doc_id]);
+
   useEffect(() => {
     if (CurrentState && CurrentState.length > 0) {
       Y.applyUpdate(doc, CurrentState);
     }
+
     const updateHandler = (update: Uint8Array) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        console.log(update, typeof update);
-
         wsRef.current.send(
           JSON.stringify({
             type: "update",
@@ -112,6 +96,7 @@ export default function EditorPage({
         onChangeState(update);
       }
     };
+
     doc.on("update", updateHandler);
     return () => {
       doc.off("update", updateHandler);

@@ -98,11 +98,11 @@ func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 		ctx.JSON(400, gin.H{"error": "Invalid user ID format"})
 		return
 	}
-	// docResp, err := h.DocClient.GetDoc(ctx, &docpb.GetDocRequest{Id: uint32(docID)})
-	// if err != nil {
-	// 	ctx.JSON(400, gin.H{"error": "Unable to get document"})
-	// 	return
-	// }
+	docResp, err := h.DocClient.GetDoc(ctx, &docpb.GetDocRequest{Id: uint32(docID)})
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Unable to get document"})
+		return
+	}
 
 	wsTokenResp, err := h.AuthClient.CreateWSToken(ctx, &authpb.CreateWSTokenRequest{
 		UserId: uint32(userIDUint64),
@@ -116,7 +116,34 @@ func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 	ctx.SetCookie("kairo_ws_token", wsTokenResp.Token, 300, "/", "", false, false)
 
 	ctx.JSON(200, gin.H{
-		// "document": docResp,
+		"document": docResp,
 		"ws_token": wsTokenResp.Token,
 	})
 }
+
+
+
+func (h *DocHandlers) ChangeDocName(ctx *gin.Context) {
+	var req docpb.ChangeDocNameRequest
+	idStr := ctx.Param("id")
+	docID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid document ID"})
+		return
+	}
+	if bindErr := ctx.ShouldBindJSON(&req); bindErr != nil {
+        ctx.JSON(400, gin.H{ "error": "Unable to parse JSON" })
+        return
+    }
+
+	docResp, err := h.DocClient.ChangeDocName(ctx, &docpb.ChangeDocNameRequest{DocId: uint32(docID),NewTitle: req.NewTitle})
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Unable to get document"})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"new_title": docResp.NewTitle,
+	})
+}
+
+
