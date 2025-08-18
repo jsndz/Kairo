@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/jsndz/kairo/apps/websocket-service/internal/app"
+	"github.com/jsndz/kairo/pkg/clients"
 	"github.com/jsndz/kairo/pkg/env"
 )
 
@@ -44,6 +45,11 @@ func main(){
 	hub := app.Hub{
 		Rooms: make(map[uint32]*app.Room),
 	}
+
+	_,docconn:= clients.NewDocClient()
+	defer docconn.Close()
+	
+	
 	http.HandleFunc("/ws",wsHandler(&hub))
 	log.Println("Web Socket Server started on :3004")
     err := http.ListenAndServe(":3004", nil)

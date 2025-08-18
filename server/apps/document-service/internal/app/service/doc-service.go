@@ -8,22 +8,55 @@ import (
 
 type DocService struct{
 	docRepo *repos.DocRepository
+	docUpdateSrv  *DocUpdateService
 }
 
 
 func NewDocService(db *gorm.DB)*DocService{
 	return &DocService{
 		docRepo: repos.NewDocRepository(db),
+		docUpdateSrv: NewDocUpdateService(db),
 	}
 }
 
 
+
+
 func (s *DocService) CreateDoc(doc *model.Document) (*model.Document,error){
+	
 	doc,err :=s.docRepo.Create(doc)
+	
 	if err!=nil{
 		return nil,err
 	}
 	return doc,nil
+}
+
+func (s *DocService) CreateDocWithDelta(doc *model.Document) (*model.Document,error){
+	var createdDoc *model.Document
+	DB := s.docRepo.GetDB()
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		docRepoTx := repos.NewDocRepository(tx)
+		docCreated, err := docRepoTx.Create(doc)
+		if err != nil {
+			return err
+		}
+		createdDoc = docCreated
+		updateRepo :=repos.NewDocUpdateRepository(tx)
+		initialUpdate := &model.DocumentUpdate{
+			DocID: createdDoc.ID,
+			UpdateState: createdDoc.CurrentState,
+		}
+		_, err = updateRepo.Create(initialUpdate)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return createdDoc, err
 }
 
 

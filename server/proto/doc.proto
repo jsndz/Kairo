@@ -66,3 +66,4 @@ message ChangeDocNameResponse{
     string new_title = 1;
 
 }
+

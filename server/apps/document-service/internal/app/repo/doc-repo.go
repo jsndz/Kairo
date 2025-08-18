@@ -15,6 +15,9 @@ type DocRepository struct{
 func NewDocRepository(db *gorm.DB) *DocRepository {
 	return &DocRepository{db: db}
 }
+func (r *DocRepository) GetDB() *gorm.DB {
+    return r.db
+}
 
 func (r *DocRepository) Create(doc *model.Document) (*model.Document ,error) {
 	if err := r.db.Create(doc).Error; err != nil {
