@@ -37,7 +37,7 @@ func (h *DocHandler) CreateNewDoc(ctx context.Context,req *docpb.CreateNewDocume
 		UserID:       req.UserId,
 		CurrentState: []byte{},
 	}
-	createdDoc, err := h.DocService.CreateDoc(doc)
+	createdDoc, err := h.DocService.CreateDocWithDelta(doc)
 	if err != nil {
 		return &docpb.CreateNewDocumentResponse{}, err
 	}
@@ -46,7 +46,6 @@ func (h *DocHandler) CreateNewDoc(ctx context.Context,req *docpb.CreateNewDocume
 		Doc: docProto,
 	}, nil
 }
-
 
 func (h *DocHandler) UpdateDoc(ctx context.Context, req *docpb.UpdateDocRequest) (*docpb.UpdateDocResponse, error) {
     updatedDoc, err := h.DocService.UpdateDoc(req.Id, &model.Document{

@@ -8,11 +8,9 @@ import (
 	authpb "github.com/jsndz/kairo/gen/go/proto/auth"
 )
 
-
 type AuthHandlers struct{
 	AuthClient authpb.AuthServiceClient
 }
-
 
 func(h *AuthHandlers) SignIn(ctx *gin.Context)  {
 	var req authpb.SignInRequest

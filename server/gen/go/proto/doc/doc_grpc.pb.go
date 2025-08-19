@@ -24,6 +24,7 @@ const (
 	DocService_GetDoc_FullMethodName            = "/doc.DocService/GetDoc"
 	DocService_GetUserDocs_FullMethodName       = "/doc.DocService/GetUserDocs"
 	DocService_ChangeDocName_FullMethodName     = "/doc.DocService/ChangeDocName"
+	DocService_CreateDelta_FullMethodName       = "/doc.DocService/CreateDelta"
 )
 
 // DocServiceClient is the client API for DocService service.
@@ -35,6 +36,7 @@ type DocServiceClient interface {
 	GetDoc(ctx context.Context, in *GetDocRequest, opts ...grpc.CallOption) (*GetDocResponse, error)
 	GetUserDocs(ctx context.Context, in *GetUserDocsRequest, opts ...grpc.CallOption) (*GetUserDocsResponse, error)
 	ChangeDocName(ctx context.Context, in *ChangeDocNameRequest, opts ...grpc.CallOption) (*ChangeDocNameResponse, error)
+	CreateDelta(ctx context.Context, in *CreateDeltaRequest, opts ...grpc.CallOption) (*CreateDeltaResponse, error)
 }
 
 type docServiceClient struct {
@@ -95,6 +97,16 @@ func (c *docServiceClient) ChangeDocName(ctx context.Context, in *ChangeDocNameR
 	return out, nil
 }
 
+func (c *docServiceClient) CreateDelta(ctx context.Context, in *CreateDeltaRequest, opts ...grpc.CallOption) (*CreateDeltaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateDeltaResponse)
+	err := c.cc.Invoke(ctx, DocService_CreateDelta_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DocServiceServer is the server API for DocService service.
 // All implementations must embed UnimplementedDocServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type DocServiceServer interface {
 	GetDoc(context.Context, *GetDocRequest) (*GetDocResponse, error)
 	GetUserDocs(context.Context, *GetUserDocsRequest) (*GetUserDocsResponse, error)
 	ChangeDocName(context.Context, *ChangeDocNameRequest) (*ChangeDocNameResponse, error)
+	CreateDelta(context.Context, *CreateDeltaRequest) (*CreateDeltaResponse, error)
 	mustEmbedUnimplementedDocServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedDocServiceServer) GetUserDocs(context.Context, *GetUserDocsRe
 }
 func (UnimplementedDocServiceServer) ChangeDocName(context.Context, *ChangeDocNameRequest) (*ChangeDocNameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangeDocName not implemented")
+}
+func (UnimplementedDocServiceServer) CreateDelta(context.Context, *CreateDeltaRequest) (*CreateDeltaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateDelta not implemented")
 }
 func (UnimplementedDocServiceServer) mustEmbedUnimplementedDocServiceServer() {}
 func (UnimplementedDocServiceServer) testEmbeddedByValue()                    {}
@@ -240,6 +256,24 @@ func _DocService_ChangeDocName_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DocService_CreateDelta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateDeltaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocServiceServer).CreateDelta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocService_CreateDelta_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocServiceServer).CreateDelta(ctx, req.(*CreateDeltaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DocService_ServiceDesc is the grpc.ServiceDesc for DocService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var DocService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangeDocName",
 			Handler:    _DocService_ChangeDocName_Handler,
+		},
+		{
+			MethodName: "CreateDelta",
+			Handler:    _DocService_CreateDelta_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

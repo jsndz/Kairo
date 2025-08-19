@@ -1,11 +1,16 @@
 package app
 
-import "sync"
+import (
+	"sync"
+
+	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
+)
 
 
 type Hub struct {
     Rooms map[uint32]*Room
     Mutex sync.Mutex
+    Doc docpb.DocServiceClient
 }
 
 func (h *Hub) GetOrCreateRoom(roomId uint32) *Room{
@@ -17,6 +22,7 @@ func (h *Hub) GetOrCreateRoom(roomId uint32) *Room{
     room := &Room{
         DocId : roomId,
         clients: make(map[uint32]*Client),
+        Doc:     h.Doc,  
     }
     h.Rooms[roomId]=room
 	return room

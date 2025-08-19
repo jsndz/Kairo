@@ -1,13 +1,16 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jsndz/kairo/apps/websocket-service/middleware"
+	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
 )
 
 type Client struct {
@@ -15,6 +18,7 @@ type Client struct {
 	UserId uint32
 	Send   chan []byte
 	Room   *Room
+	  
 }
 
 type Message struct {
@@ -114,8 +118,13 @@ func (c *Client) handleUpdate(message Message) {
 	c.Room.mutex.Lock()
 	c.Room.updates = append(c.Room.updates, message.Payload)
 	c.Room.mutex.Unlock()
-
-	
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	log.Print(c.Room.Doc)
+	_, err := c.Room.Doc.CreateDelta(ctx, &docpb.CreateDeltaRequest{DocId: c.Room.DocId, Delta: message.Payload})
+	if err != nil {
+		log.Printf("failed to save delta for doc %d: %v", c.Room.DocId, err)
+	}
 	c.Room.Broadcast(c.UserId, message.Payload)
 }
 

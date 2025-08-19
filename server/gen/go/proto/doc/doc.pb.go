@@ -569,6 +569,94 @@ func (x *ChangeDocNameResponse) GetNewTitle() string {
 	return ""
 }
 
+type CreateDeltaRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Delta         []byte                 `protobuf:"bytes,1,opt,name=delta,proto3" json:"delta,omitempty"`
+	DocId         uint32                 `protobuf:"varint,2,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateDeltaRequest) Reset() {
+	*x = CreateDeltaRequest{}
+	mi := &file_proto_doc_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDeltaRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDeltaRequest) ProtoMessage() {}
+
+func (x *CreateDeltaRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateDeltaRequest.ProtoReflect.Descriptor instead.
+func (*CreateDeltaRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *CreateDeltaRequest) GetDelta() []byte {
+	if x != nil {
+		return x.Delta
+	}
+	return nil
+}
+
+func (x *CreateDeltaRequest) GetDocId() uint32 {
+	if x != nil {
+		return x.DocId
+	}
+	return 0
+}
+
+type CreateDeltaResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateDeltaResponse) Reset() {
+	*x = CreateDeltaResponse{}
+	mi := &file_proto_doc_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDeltaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDeltaResponse) ProtoMessage() {}
+
+func (x *CreateDeltaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateDeltaResponse.ProtoReflect.Descriptor instead.
+func (*CreateDeltaResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{12}
+}
+
 var File_proto_doc_proto protoreflect.FileDescriptor
 
 const file_proto_doc_proto_rawDesc = "" +
@@ -605,14 +693,19 @@ const file_proto_doc_proto_rawDesc = "" +
 	"\x06doc_id\x18\x01 \x01(\rR\x05docId\x12\x1b\n" +
 	"\tnew_title\x18\x02 \x01(\tR\bnewTitle\"4\n" +
 	"\x15ChangeDocNameResponse\x12\x1b\n" +
-	"\tnew_title\x18\x01 \x01(\tR\bnewTitle2\xd9\x02\n" +
+	"\tnew_title\x18\x01 \x01(\tR\bnewTitle\"A\n" +
+	"\x12CreateDeltaRequest\x12\x14\n" +
+	"\x05delta\x18\x01 \x01(\fR\x05delta\x12\x15\n" +
+	"\x06doc_id\x18\x02 \x01(\rR\x05docId\"\x15\n" +
+	"\x13CreateDeltaResponse2\x9b\x03\n" +
 	"\n" +
 	"DocService\x12R\n" +
 	"\x11CreateNewDocument\x12\x1d.doc.CreateNewDocumentRequest\x1a\x1e.doc.CreateNewDocumentResponse\x12:\n" +
 	"\tUpdateDoc\x12\x15.doc.UpdateDocRequest\x1a\x16.doc.UpdateDocResponse\x121\n" +
 	"\x06GetDoc\x12\x12.doc.GetDocRequest\x1a\x13.doc.GetDocResponse\x12@\n" +
 	"\vGetUserDocs\x12\x17.doc.GetUserDocsRequest\x1a\x18.doc.GetUserDocsResponse\x12F\n" +
-	"\rChangeDocName\x12\x19.doc.ChangeDocNameRequest\x1a\x1a.doc.ChangeDocNameResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
+	"\rChangeDocName\x12\x19.doc.ChangeDocNameRequest\x1a\x1a.doc.ChangeDocNameResponse\x12@\n" +
+	"\vCreateDelta\x12\x17.doc.CreateDeltaRequest\x1a\x18.doc.CreateDeltaResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
 
 var (
 	file_proto_doc_proto_rawDescOnce sync.Once
@@ -626,7 +719,7 @@ func file_proto_doc_proto_rawDescGZIP() []byte {
 	return file_proto_doc_proto_rawDescData
 }
 
-var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_doc_proto_goTypes = []any{
 	(*CreateNewDocumentRequest)(nil),  // 0: doc.CreateNewDocumentRequest
 	(*CreateNewDocumentResponse)(nil), // 1: doc.CreateNewDocumentResponse
@@ -639,6 +732,8 @@ var file_proto_doc_proto_goTypes = []any{
 	(*GetUserDocsResponse)(nil),       // 8: doc.GetUserDocsResponse
 	(*ChangeDocNameRequest)(nil),      // 9: doc.ChangeDocNameRequest
 	(*ChangeDocNameResponse)(nil),     // 10: doc.ChangeDocNameResponse
+	(*CreateDeltaRequest)(nil),        // 11: doc.CreateDeltaRequest
+	(*CreateDeltaResponse)(nil),       // 12: doc.CreateDeltaResponse
 }
 var file_proto_doc_proto_depIdxs = []int32{
 	2,  // 0: doc.CreateNewDocumentResponse.doc:type_name -> doc.Document
@@ -650,13 +745,15 @@ var file_proto_doc_proto_depIdxs = []int32{
 	5,  // 6: doc.DocService.GetDoc:input_type -> doc.GetDocRequest
 	7,  // 7: doc.DocService.GetUserDocs:input_type -> doc.GetUserDocsRequest
 	9,  // 8: doc.DocService.ChangeDocName:input_type -> doc.ChangeDocNameRequest
-	1,  // 9: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
-	4,  // 10: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
-	6,  // 11: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
-	8,  // 12: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
-	10, // 13: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
+	11, // 9: doc.DocService.CreateDelta:input_type -> doc.CreateDeltaRequest
+	1,  // 10: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
+	4,  // 11: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
+	6,  // 12: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
+	8,  // 13: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
+	10, // 14: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
+	12, // 15: doc.DocService.CreateDelta:output_type -> doc.CreateDeltaResponse
+	10, // [10:16] is the sub-list for method output_type
+	4,  // [4:10] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -673,7 +770,7 @@ func file_proto_doc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_doc_proto_rawDesc), len(file_proto_doc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

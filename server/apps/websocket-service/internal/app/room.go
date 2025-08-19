@@ -1,12 +1,18 @@
 package app
 
-import "sync"
+import (
+	"sync"
+
+	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
+)
 
 type Room struct {
 	DocId   uint32
 	clients map[uint32]*Client
 	mutex   sync.Mutex
 	updates [][]byte
+	Doc 	docpb.DocServiceClient
+
 }
 
 func (r *Room) AddClient(client *Client) {

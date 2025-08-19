@@ -10,11 +10,12 @@ import (
 
 type DocServer struct {
 	h *handler.DocHandler
+	uh *handler.DocUpdateHandler
 	docpb.UnimplementedDocServiceServer
 }
 
-func NewDocServer(h *handler.DocHandler) *DocServer {
-	return &DocServer{h: h}
+func NewDocServer(h *handler.DocHandler,uh *handler.DocUpdateHandler) *DocServer {
+	return &DocServer{h: h,uh: uh}
 }
 
 func (s *DocServer) CreateNewDocument(ctx context.Context, req *docpb.CreateNewDocumentRequest) (*docpb.CreateNewDocumentResponse, error) {
@@ -55,6 +56,17 @@ func (s *DocServer) GetDoc(ctx context.Context, req *docpb.GetDocRequest) (*docp
 
 func (s *DocServer) ChangeDocName(ctx context.Context, req *docpb.ChangeDocNameRequest) (*docpb.ChangeDocNameResponse, error) {
 	resp, err := s.h.ChangeDocName(ctx, req)
+	if err != nil {
+		log.Println("GetDoc error:", err)
+		return nil, err
+	}
+	return resp, nil
+}
+
+
+
+func (s *DocServer) CreateDelta(ctx context.Context, req *docpb.CreateDeltaRequest) (*docpb.CreateDeltaResponse, error) {
+	resp, err := s.uh.CreateDelta(ctx, req)
 	if err != nil {
 		log.Println("GetDoc error:", err)
 		return nil, err

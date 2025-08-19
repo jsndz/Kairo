@@ -10,7 +10,7 @@ service DocService {
     rpc GetDoc (GetDocRequest) returns (GetDocResponse);
     rpc GetUserDocs (GetUserDocsRequest) returns (GetUserDocsResponse);
     rpc ChangeDocName (ChangeDocNameRequest) returns (ChangeDocNameResponse);
-
+    rpc CreateDelta (CreateDeltaRequest) returns (CreateDeltaResponse);
 }
 
 message CreateNewDocumentRequest {
@@ -67,3 +67,11 @@ message ChangeDocNameResponse{
 
 }
 
+message CreateDeltaRequest{
+    bytes delta =1;
+    uint32 doc_id = 2;
+}
+
+message CreateDeltaResponse{
+    
+}

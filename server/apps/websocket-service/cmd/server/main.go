@@ -42,12 +42,14 @@ func wsHandler(h *app.Hub) http.HandlerFunc{
 
 func main(){
 	env.Loadenv()
+	docClient,docconn:= clients.NewDocClient()
+	defer docconn.Close()
 	hub := app.Hub{
 		Rooms: make(map[uint32]*app.Room),
+		Doc: docClient,
 	}
 
-	_,docconn:= clients.NewDocClient()
-	defer docconn.Close()
+	
 	
 	
 	http.HandleFunc("/ws",wsHandler(&hub))

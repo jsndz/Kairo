@@ -29,7 +29,8 @@ func main(){
 		log.Fatalf("Failed to listen: %v", err)
 	}
     h:= handler.NewDocHandler(database)
-	docServer := app.NewDocServer(h)
+	uh:= handler.NewDocUpdateHandler(database)
+	docServer := app.NewDocServer(h,uh)
 	grpcServer:= grpc.NewServer()
 
 	docpb.RegisterDocServiceServer(grpcServer,docServer)
