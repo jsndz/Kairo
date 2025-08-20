@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/jsndz/kairo/apps/document-service/internal/app/model"
 	repos "github.com/jsndz/kairo/apps/document-service/internal/app/repo"
 	"gorm.io/gorm"
@@ -42,4 +44,8 @@ func (s *DocUpdateService) GetDocUpdate(updateId uint32) (*model.DocumentUpdate,
 
 func (s *DocUpdateService) DeleteDocUpdate(updateId uint32) error {
 	return s.docUpdateRepo.Delete(updateId)
+}
+
+func (s *DocUpdateService) GetAfterUpdates(doc_id uint32,updated_at time.Time) (*[]model.DocumentUpdate, error) {
+	return s.docUpdateRepo.GetAfterUpdates(doc_id,updated_at)
 }

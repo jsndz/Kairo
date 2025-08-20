@@ -64,3 +64,4 @@ func (r *DocRepository) GetFromId(ID uint32) (*model.Document ,error){
 	}
 	return &doc,nil
 }
+

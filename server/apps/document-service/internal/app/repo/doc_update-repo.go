@@ -1,6 +1,8 @@
 package repos
 
 import (
+	"time"
+
 	"github.com/jsndz/kairo/apps/document-service/internal/app/model"
 	"github.com/rs/zerolog/log"
 
@@ -47,3 +49,15 @@ func (r *DocUpdateRepository) GetFromId(ID uint32) (*model.DocumentUpdate ,error
 	}
 	return &doc,nil
 }
+
+func (r *DocUpdateRepository) GetAfterUpdates(doc_id uint32,updated_at time.Time) (*[]model.DocumentUpdate ,error){
+	//SELECT update_state FROM document_updates WHERE doc_id = 2 AND created_at > '2025-08-01 00:00:00+00';
+	var updates []model.DocumentUpdate
+	err := r.db.
+	 	Select("update_state").  
+        Where("doc_id = ? AND created_at > ?", doc_id, updated_at).
+        Order("created_at ASC"). 
+        Find(&updates).Error
+	return &updates,err
+}
+

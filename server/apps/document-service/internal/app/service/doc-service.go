@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/jsndz/kairo/apps/document-service/internal/app/model"
 	repos "github.com/jsndz/kairo/apps/document-service/internal/app/repo"
+	"github.com/jsndz/kairo/apps/document-service/utils"
 	"gorm.io/gorm"
 )
 
@@ -97,4 +98,25 @@ func (s *DocService) ChangeTitle(doc_id uint32,new_title string) (string, error)
         return "", err
     }
     return doc.Title, nil
+}
+
+
+func (s *DocService) AutoSave(doc_id uint32)(*model.Document,error){
+	doc ,err := s.GetDoc(doc_id)
+	if err != nil{
+		return nil,err
+	}
+	docUpdates ,err:= s.docUpdateSrv.GetAfterUpdates(doc_id,doc.UpdatedAt)
+	if err != nil{
+		return nil,err
+	}
+	new_state,err := utils.CombineDeltaState(doc.CurrentState, docUpdates)
+	if err != nil{
+		return nil,err
+	}
+	newDoc ,err := s.UpdateDoc(doc_id,&model.Document{CurrentState: new_state})
+	if err != nil{
+		return nil,err
+	}
+	return newDoc,err
 }
