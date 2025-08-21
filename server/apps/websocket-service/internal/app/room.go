@@ -26,13 +26,15 @@ func (r *Room) RemoveClient(client *Client) {
 	delete(r.clients, client.UserId)
 }
 
-func (r *Room) Broadcast(userID uint32, msg []byte) {
+func (r *Room) Broadcast(userID uint32, msg []byte,msgType uint) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-
+	payload := make([]byte, 1+len(msg))
+	payload[0]= byte(msgType)
+	copy(payload[1:], msg)
 	for id, client := range r.clients {
 		if id != userID {
-			client.Send <- msg
+			client.Send <- payload
 		}
 	}
 }

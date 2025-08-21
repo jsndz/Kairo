@@ -46,7 +46,7 @@ func (c *Client) ReadPump(h *Hub) {
 
 func (c *Client) WritePump() {
 	for msg := range c.Send {
-		if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+		if err := c.Conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
 			log.Println("write error:", err)
 			return
 		}
@@ -73,19 +73,19 @@ func (c *Client) handleJoin(message []uint8, h *Hub) {
 		DocID uint32 `json:"doc_id"`
 	}
 	if err := json.Unmarshal(message, &payload); err != nil {
-		c.SendJSON("error", "Invalid join payload", 0)
+		c.HandleNotification(2,"error in extracting token ")
 		return
 	}
 
 	userId, err := middleware.Authenticate(payload.Token)
 	if err != nil {
-		c.SendJSON("error", "Authentication failed", 0)
+		c.HandleNotification(2,"Authentication failed") 
 		return
 	}
 
 	parsedUserId, err := strconv.ParseUint(userId, 10, 32)
 	if err != nil {
-		c.SendJSON("error", "Invalid user ID", 0)
+		c.HandleNotification(2,"Invalid user ID") 
 		return
 	}
 
@@ -94,25 +94,32 @@ func (c *Client) handleJoin(message []uint8, h *Hub) {
 	room.AddClient(c)
 	c.Room = room
 
-	c.SendJSON("join", fmt.Sprintf("Joined room %d", payload.DocID), payload.DocID)
-	room.Broadcast(c.UserId, mustMarshal(fmt.Sprintf("%d joined the Room.", c.UserId)))
+	c.HandleNotification(2,"Joined Room successfully") 
+	room.Broadcast(c.UserId, mustMarshal(fmt.Sprintf("%d joined the Room.", c.UserId)),2)
 }
 
 func (c *Client)HandleNotification(msgType uint,message string){
-
+	msgBytes := []byte(message)
+	payload := make([]byte, 1+len(msgBytes))
+	payload[0]= byte(msgType)
+	copy(payload[1:], msgBytes)
+	c.Send<- payload
 }
 
-func (c *Client) handleUpdate(message []uint8) {
+func (c *Client) handleUpdate(message []uint8 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+	if c.Room == nil || c.Room.Doc == nil {
+        log.Printf("handleUpdate called but Room or Doc is nil (user %d)", c.UserId)
+        return
+    }
 	log.Print(c.Room.Doc)
 	_, err := c.Room.Doc.CreateDelta(ctx, &docpb.CreateDeltaRequest{DocId: c.Room.DocId, Delta: message})
 	if err != nil {
 		log.Printf("failed to save delta for doc %d: %v", c.Room.DocId, err)
 	}
-	c.Room.Broadcast(c.UserId, message)
+	c.Room.Broadcast(c.UserId, message,0)
 }
-
 
 func mustMarshal(v interface{}) json.RawMessage {
 	b, err := json.Marshal(v)

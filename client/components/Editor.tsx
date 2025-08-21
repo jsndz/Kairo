@@ -8,6 +8,8 @@ import Document from "@tiptap/extension-document";
 import Text from "@tiptap/extension-text";
 import Collaboration from "@tiptap/extension-collaboration";
 import * as Y from "yjs";
+import { Toaster, toast } from "sonner";
+import { createMessage, parseMessage } from "@/lib/format";
 
 interface EditorPageProps {
   onChangeState?: (state: Uint8Array) => void;
@@ -48,19 +50,19 @@ export default function EditorPage({
       wsRef.current = ws;
 
       ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            type: "join",
-            payload: { token, doc_id },
-          })
+        const payload = new TextEncoder().encode(
+          JSON.stringify({ token, doc_id })
         );
+        ws.send(createMessage(2, payload));
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         // [0, ...yjs_update_bytes] for document updates
         // [1, ...awareness_bytes] for awareness updates
-        // [2, ...json_bytes] for auth/join
-        const { type, payload } = parseMessage(event.data);
+        // [2, ...json_bytes] for join
+        const { type, payload } = await parseMessage(event.data);
+        console.log(type, payload);
+
         switch (type) {
           case 0:
             Y.applyUpdate(docRef.current!, payload);
@@ -69,17 +71,8 @@ export default function EditorPage({
             break;
           // will be completed
           case 2:
-            console.log(String(payload));
+            toast(String(payload));
             break;
-        }
-
-        if (typeof event.data === "string") {
-          const obj = JSON.parse(event.data);
-          const values = Object.values(obj);
-          const uint8 = new Uint8Array(values as number[]);
-          Y.applyUpdate(docRef.current!, uint8);
-        } else {
-          Y.applyUpdate(docRef.current!, event.data as Uint8Array);
         }
       };
 
@@ -101,12 +94,7 @@ export default function EditorPage({
 
     const updateHandler = (update: Uint8Array) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            type: "update",
-            payload: update,
-          })
-        );
+        wsRef.current.send(createMessage(0, update));
       }
 
       if (onChangeState) {
@@ -124,6 +112,8 @@ export default function EditorPage({
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <Toaster position="top-right" />
+
       <main className="flex-1 overflow-auto p-4">
         <EditorContent
           editor={editor}
