@@ -9,8 +9,6 @@ import Text from "@tiptap/extension-text";
 import Collaboration from "@tiptap/extension-collaboration";
 import * as Y from "yjs";
 
-const doc = new Y.Doc();
-
 interface EditorPageProps {
   onChangeState?: (state: Uint8Array) => void;
   CurrentState: Uint8Array;
@@ -23,11 +21,14 @@ export default function EditorPage({
   const [isMounted, setIsMounted] = useState(false);
   const { id } = useParams<{ id: string }>();
   const wsRef = useRef<WebSocket | null>(null);
-
+  const docRef = useRef<Y.Doc | null>(null);
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  if (!docRef.current) {
+    docRef.current = new Y.Doc();
+  }
   const doc_id = parseInt(id!);
 
   const editor = useEditor({
@@ -35,7 +36,7 @@ export default function EditorPage({
       Document,
       Paragraph,
       Text,
-      Collaboration.configure({ document: doc }),
+      Collaboration.configure({ document: docRef.current }),
     ],
     immediatelyRender: false,
   });
@@ -56,13 +57,29 @@ export default function EditorPage({
       };
 
       ws.onmessage = (event) => {
+        // [0, ...yjs_update_bytes] for document updates
+        // [1, ...awareness_bytes] for awareness updates
+        // [2, ...json_bytes] for auth/join
+        const { type, payload } = parseMessage(event.data);
+        switch (type) {
+          case 0:
+            Y.applyUpdate(docRef.current!, payload);
+            break;
+          case 1:
+            break;
+          // will be completed
+          case 2:
+            console.log(String(payload));
+            break;
+        }
+
         if (typeof event.data === "string") {
           const obj = JSON.parse(event.data);
           const values = Object.values(obj);
           const uint8 = new Uint8Array(values as number[]);
-          Y.applyUpdate(doc, uint8);
+          Y.applyUpdate(docRef.current!, uint8);
         } else {
-          Y.applyUpdate(doc, event.data as Uint8Array);
+          Y.applyUpdate(docRef.current!, event.data as Uint8Array);
         }
       };
 
@@ -79,7 +96,7 @@ export default function EditorPage({
 
   useEffect(() => {
     if (CurrentState && CurrentState.length > 0) {
-      Y.applyUpdate(doc, CurrentState);
+      Y.applyUpdate(docRef.current!, CurrentState);
     }
 
     const updateHandler = (update: Uint8Array) => {
@@ -97,9 +114,9 @@ export default function EditorPage({
       }
     };
 
-    doc.on("update", updateHandler);
+    docRef.current?.on("update", updateHandler);
     return () => {
-      doc.off("update", updateHandler);
+      docRef.current?.off("update", updateHandler);
     };
   }, [doc_id]);
 

@@ -657,6 +657,94 @@ func (*CreateDeltaResponse) Descriptor() ([]byte, []int) {
 	return file_proto_doc_proto_rawDescGZIP(), []int{12}
 }
 
+type AutoSaveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DocId         uint32                 `protobuf:"varint,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AutoSaveRequest) Reset() {
+	*x = AutoSaveRequest{}
+	mi := &file_proto_doc_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AutoSaveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AutoSaveRequest) ProtoMessage() {}
+
+func (x *AutoSaveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AutoSaveRequest.ProtoReflect.Descriptor instead.
+func (*AutoSaveRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AutoSaveRequest) GetDocId() uint32 {
+	if x != nil {
+		return x.DocId
+	}
+	return 0
+}
+
+type AutoSaveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AutoSaveResponse) Reset() {
+	*x = AutoSaveResponse{}
+	mi := &file_proto_doc_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AutoSaveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AutoSaveResponse) ProtoMessage() {}
+
+func (x *AutoSaveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AutoSaveResponse.ProtoReflect.Descriptor instead.
+func (*AutoSaveResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AutoSaveResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_proto_doc_proto protoreflect.FileDescriptor
 
 const file_proto_doc_proto_rawDesc = "" +
@@ -697,7 +785,11 @@ const file_proto_doc_proto_rawDesc = "" +
 	"\x12CreateDeltaRequest\x12\x14\n" +
 	"\x05delta\x18\x01 \x01(\fR\x05delta\x12\x15\n" +
 	"\x06doc_id\x18\x02 \x01(\rR\x05docId\"\x15\n" +
-	"\x13CreateDeltaResponse2\x9b\x03\n" +
+	"\x13CreateDeltaResponse\"(\n" +
+	"\x0fAutoSaveRequest\x12\x15\n" +
+	"\x06doc_id\x18\x01 \x01(\rR\x05docId\",\n" +
+	"\x10AutoSaveResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\xd4\x03\n" +
 	"\n" +
 	"DocService\x12R\n" +
 	"\x11CreateNewDocument\x12\x1d.doc.CreateNewDocumentRequest\x1a\x1e.doc.CreateNewDocumentResponse\x12:\n" +
@@ -705,7 +797,8 @@ const file_proto_doc_proto_rawDesc = "" +
 	"\x06GetDoc\x12\x12.doc.GetDocRequest\x1a\x13.doc.GetDocResponse\x12@\n" +
 	"\vGetUserDocs\x12\x17.doc.GetUserDocsRequest\x1a\x18.doc.GetUserDocsResponse\x12F\n" +
 	"\rChangeDocName\x12\x19.doc.ChangeDocNameRequest\x1a\x1a.doc.ChangeDocNameResponse\x12@\n" +
-	"\vCreateDelta\x12\x17.doc.CreateDeltaRequest\x1a\x18.doc.CreateDeltaResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
+	"\vCreateDelta\x12\x17.doc.CreateDeltaRequest\x1a\x18.doc.CreateDeltaResponse\x127\n" +
+	"\bAutoSave\x12\x14.doc.AutoSaveRequest\x1a\x15.doc.AutoSaveResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
 
 var (
 	file_proto_doc_proto_rawDescOnce sync.Once
@@ -719,7 +812,7 @@ func file_proto_doc_proto_rawDescGZIP() []byte {
 	return file_proto_doc_proto_rawDescData
 }
 
-var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_proto_doc_proto_goTypes = []any{
 	(*CreateNewDocumentRequest)(nil),  // 0: doc.CreateNewDocumentRequest
 	(*CreateNewDocumentResponse)(nil), // 1: doc.CreateNewDocumentResponse
@@ -734,6 +827,8 @@ var file_proto_doc_proto_goTypes = []any{
 	(*ChangeDocNameResponse)(nil),     // 10: doc.ChangeDocNameResponse
 	(*CreateDeltaRequest)(nil),        // 11: doc.CreateDeltaRequest
 	(*CreateDeltaResponse)(nil),       // 12: doc.CreateDeltaResponse
+	(*AutoSaveRequest)(nil),           // 13: doc.AutoSaveRequest
+	(*AutoSaveResponse)(nil),          // 14: doc.AutoSaveResponse
 }
 var file_proto_doc_proto_depIdxs = []int32{
 	2,  // 0: doc.CreateNewDocumentResponse.doc:type_name -> doc.Document
@@ -746,14 +841,16 @@ var file_proto_doc_proto_depIdxs = []int32{
 	7,  // 7: doc.DocService.GetUserDocs:input_type -> doc.GetUserDocsRequest
 	9,  // 8: doc.DocService.ChangeDocName:input_type -> doc.ChangeDocNameRequest
 	11, // 9: doc.DocService.CreateDelta:input_type -> doc.CreateDeltaRequest
-	1,  // 10: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
-	4,  // 11: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
-	6,  // 12: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
-	8,  // 13: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
-	10, // 14: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
-	12, // 15: doc.DocService.CreateDelta:output_type -> doc.CreateDeltaResponse
-	10, // [10:16] is the sub-list for method output_type
-	4,  // [4:10] is the sub-list for method input_type
+	13, // 10: doc.DocService.AutoSave:input_type -> doc.AutoSaveRequest
+	1,  // 11: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
+	4,  // 12: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
+	6,  // 13: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
+	8,  // 14: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
+	10, // 15: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
+	12, // 16: doc.DocService.CreateDelta:output_type -> doc.CreateDeltaResponse
+	14, // 17: doc.DocService.AutoSave:output_type -> doc.AutoSaveResponse
+	11, // [11:18] is the sub-list for method output_type
+	4,  // [4:11] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -770,7 +867,7 @@ func file_proto_doc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_doc_proto_rawDesc), len(file_proto_doc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

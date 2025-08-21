@@ -21,11 +21,6 @@ type Client struct {
 	  
 }
 
-type Message struct {
-	Type   string          `json:"type"`
-	Payload json.RawMessage `json:"payload"`
-	DocId  uint32          `json:"roomId,omitempty"`
-}
 
 func (c *Client) ReadPump(h *Hub) {
 	defer func() {
@@ -45,14 +40,7 @@ func (c *Client) ReadPump(h *Hub) {
 			log.Println("read error:", err)
 			break
 		}
-
-		var message Message
-		if err := json.Unmarshal(msg, &message); err != nil {
-			log.Println("Error unmarshalling message:", err)
-			continue
-		}
-
-		c.HandleEvents(message, h)
+		c.HandleEvents(uint(msg[0]), []uint8(msg[1:]), h)
 	}
 }
 
@@ -65,23 +53,26 @@ func (c *Client) WritePump() {
 	}
 }
 
-func (c *Client) HandleEvents(message Message, h *Hub) {
-	switch message.Type {
-	case "join":
-		c.handleJoin(message, h)
-	case "update":
-		c.handleUpdate(message)
+func (c *Client) HandleEvents(msgType uint,payload []uint8 ,h *Hub) {
+	switch msgType {
+	case 0:
+		c.handleUpdate(payload)
+	case 1:
+		//will be done later for awareness
+	case 2:
+		c.handleJoin(payload, h)
+	
 	default:
-		c.SendJSON("error", "Unknown message type", 0)
+		c.Send <- []uint8{}
 	}
 }
 
-func (c *Client) handleJoin(message Message, h *Hub) {
+func (c *Client) handleJoin(message []uint8, h *Hub) {
 	var payload struct {
 		Token string `json:"token"`
 		DocID uint32 `json:"doc_id"`
 	}
-	if err := json.Unmarshal(message.Payload, &payload); err != nil {
+	if err := json.Unmarshal(message, &payload); err != nil {
 		c.SendJSON("error", "Invalid join payload", 0)
 		return
 	}
@@ -104,42 +95,24 @@ func (c *Client) handleJoin(message Message, h *Hub) {
 	c.Room = room
 
 	c.SendJSON("join", fmt.Sprintf("Joined room %d", payload.DocID), payload.DocID)
-
-	room.mutex.Lock()
-	for _, u := range room.updates {
-		c.Send <- u
-	}
-	room.mutex.Unlock()
-
 	room.Broadcast(c.UserId, mustMarshal(fmt.Sprintf("%d joined the Room.", c.UserId)))
 }
 
-func (c *Client) handleUpdate(message Message) {
-	c.Room.mutex.Lock()
-	c.Room.updates = append(c.Room.updates, message.Payload)
-	c.Room.mutex.Unlock()
+func (c *Client)HandleNotification(msgType uint,message string){
+
+}
+
+func (c *Client) handleUpdate(message []uint8) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	log.Print(c.Room.Doc)
-	_, err := c.Room.Doc.CreateDelta(ctx, &docpb.CreateDeltaRequest{DocId: c.Room.DocId, Delta: message.Payload})
+	_, err := c.Room.Doc.CreateDelta(ctx, &docpb.CreateDeltaRequest{DocId: c.Room.DocId, Delta: message})
 	if err != nil {
 		log.Printf("failed to save delta for doc %d: %v", c.Room.DocId, err)
 	}
-	c.Room.Broadcast(c.UserId, message.Payload)
+	c.Room.Broadcast(c.UserId, message)
 }
 
-func (c *Client) SendJSON(msgType string, payload interface{}, roomId uint32) {
-	msg, err := json.Marshal(Message{
-		Type:    msgType,
-		Payload: mustMarshal(payload),
-		DocId:   roomId,
-	})
-	if err != nil {
-		log.Println("failed to marshal message:", err)
-		return
-	}
-	c.Send <- msg
-}
 
 func mustMarshal(v interface{}) json.RawMessage {
 	b, err := json.Marshal(v)
