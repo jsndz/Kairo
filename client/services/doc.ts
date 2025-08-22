@@ -58,20 +58,37 @@ async function updateName(id: number, title: string): Promise<string | null> {
       },
       { withCredentials: true }
     );
+
     return res.data.new_title;
   } catch (err: any) {
     return null;
   }
 }
 
-async function getDoc(id: number): Promise<Docs | null> {
+async function getDocMeta(id: number): Promise<Docs | null> {
   try {
     const res = await axios.get(`${API_BASE}/doc/${id}`, {
+      headers: { Accept: "application/json" },
       withCredentials: true,
     });
     localStorage.setItem("ws_token", res.data.ws_token);
 
-    return res.data.document.doc;
+    return res.data.document;
+  } catch {
+    return null;
+  }
+}
+
+async function getDocContent(id: number): Promise<Uint8Array | null> {
+  try {
+    const res = await axios.get(`${API_BASE}/doc/${id}`, {
+      withCredentials: true,
+      headers: { Accept: "application/octet-stream" },
+      responseType: "arraybuffer",
+    });
+    console.log(res.data);
+
+    return res.data;
   } catch {
     return null;
   }
@@ -91,7 +108,8 @@ async function getUserDocs(userId: number): Promise<Docs[]> {
 export const docService = {
   createDoc,
   updateDoc,
-  getDoc,
+  getDocMeta,
+  getDocContent,
   getUserDocs,
   updateName,
 };

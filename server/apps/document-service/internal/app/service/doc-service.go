@@ -89,7 +89,6 @@ func (s *DocService) GetUserDocs(user_id uint32)(*[]model.Document,error){
 	return docs,nil
 }
  
-
 func (s *DocService) ChangeTitle(doc_id uint32,new_title string) (string, error) {
     doc, err := s.docRepo.Update(doc_id, map[string]interface{}{
         "title": new_title,

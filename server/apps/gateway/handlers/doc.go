@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -76,6 +77,7 @@ func(h *DocHandlers) GetUserDocs(ctx *gin.Context)  {
 
 func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 	idStr := ctx.Param("id")
+	accept:= ctx.GetHeader("Accept")
 	docID, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		ctx.JSON(400, gin.H{"error": "Invalid document ID"})
@@ -115,10 +117,27 @@ func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 
 	ctx.SetCookie("kairo_ws_token", wsTokenResp.Token, 300, "/", "", false, false)
 
-	ctx.JSON(200, gin.H{
-		"document": docResp,
-		"ws_token": wsTokenResp.Token,
-	})
+	log.Println(accept)
+
+	switch accept{
+		case "application/json":{
+			ctx.JSON(200, gin.H{
+					"document": gin.H{
+						"id":        docResp.Doc.Id,
+						"title":     docResp.Doc.Title,
+						"user_id":   docResp.Doc.UserId,
+						"createdAt": docResp.Doc.CreatedAt,
+						"updatedAt": docResp.Doc.UpdatedAt,
+					},
+					"ws_token": wsTokenResp.Token,
+			})
+		}
+	    case "application/octet-stream":{
+			ctx.JSON(200, gin.H{
+					"content": docResp.Doc.CurrentState,
+			})
+		}
+	}
 }
 
 

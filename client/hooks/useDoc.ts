@@ -22,13 +22,16 @@ export function useDoc() {
       setLoading(false);
     }
   }, [user?.id]);
+
   const getDocById = useCallback(async (id: number) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await docService.getDoc(id);
+      const meta = await docService.getDocMeta(id);
+      const content = await docService.getDocContent(id);
+      console.log("D", { meta, content });
 
-      return data;
+      return { meta, content };
     } catch (err: any) {
       setError(err.message || "Failed to fetch document");
       return null;
@@ -36,6 +39,7 @@ export function useDoc() {
       setLoading(false);
     }
   }, []);
+
   const changeTitle = useCallback(async (id: number, title: string) => {
     setLoading(true);
     setError(null);
@@ -50,6 +54,7 @@ export function useDoc() {
       setLoading(false);
     }
   }, []);
+
   const createDoc = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);

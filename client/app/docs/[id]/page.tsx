@@ -25,9 +25,10 @@ const EditPage = () => {
       if (!docId) return;
       const doc = await getDocById(docId);
       if (doc) {
-        setTitle(doc.title);
-        if (doc.current_state) {
-          setCurrentState(new Uint8Array(doc.current_state));
+        setTitle(doc.meta?.title || "");
+        if (doc.content) {
+          console.log("state", doc.content);
+          setCurrentState(doc.content);
         }
       }
     };

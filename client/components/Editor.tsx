@@ -22,15 +22,14 @@ export default function EditorPage({
 }: EditorPageProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { id } = useParams<{ id: string }>();
+
   const wsRef = useRef<WebSocket | null>(null);
-  const docRef = useRef<Y.Doc | null>(null);
+  const docRef = useRef<Y.Doc>(new Y.Doc());
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!docRef.current) {
-    docRef.current = new Y.Doc();
-  }
   const doc_id = parseInt(id!);
 
   const editor = useEditor({
@@ -44,69 +43,67 @@ export default function EditorPage({
   });
 
   useEffect(() => {
-    if (!wsRef.current) {
-      const token = localStorage.getItem("ws_token");
-      const ws = new WebSocket(`ws://localhost:3004/ws`);
-      wsRef.current = ws;
+    if (wsRef.current) return;
 
-      ws.onopen = () => {
-        const payload = new TextEncoder().encode(
-          JSON.stringify({ token, doc_id })
-        );
-        ws.send(createMessage(2, payload));
-      };
+    const token = localStorage.getItem("ws_token");
+    const ws = new WebSocket(`ws://localhost:3004/ws`);
+    wsRef.current = ws;
 
-      ws.onmessage = async (event) => {
-        // [0, ...yjs_update_bytes] for document updates
-        // [1, ...awareness_bytes] for awareness updates
-        // [2, ...json_bytes] for join
-        const { type, payload } = await parseMessage(event.data);
-        console.log(type, payload);
+    ws.onopen = () => {
+      const payload = new TextEncoder().encode(
+        JSON.stringify({ token, doc_id })
+      );
+      ws.send(createMessage(2, payload));
+    };
 
-        switch (type) {
-          case 0:
-            Y.applyUpdate(docRef.current!, payload);
-            break;
-          case 1:
-            break;
-          // will be completed
-          case 2:
-            toast(String(payload));
-            break;
-        }
-      };
+    ws.onmessage = async (event) => {
+      const data =
+        event.data instanceof Blob
+          ? new Uint8Array(await event.data.arrayBuffer())
+          : event.data;
 
-      ws.onclose = () => {
-        wsRef.current = null;
-      };
-    }
+      const { type, payload } = await parseMessage(data);
+
+      switch (type) {
+        case 0: // document update
+          Y.applyUpdate(docRef.current, payload);
+          break;
+        case 1: // awareness update (TODO)
+          break;
+        case 2: // join message
+          toast(String(payload));
+          break;
+      }
+    };
+
+    ws.onclose = () => {
+      wsRef.current = null;
+    };
 
     return () => {
-      wsRef.current?.close();
+      ws.close();
       wsRef.current = null;
     };
   }, [doc_id]);
 
   useEffect(() => {
-    if (CurrentState && CurrentState.length > 0) {
-      Y.applyUpdate(docRef.current!, CurrentState);
-    }
-
     const updateHandler = (update: Uint8Array) => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(createMessage(0, update));
       }
-
-      if (onChangeState) {
-        onChangeState(update);
-      }
+      onChangeState?.(update);
     };
 
-    docRef.current?.on("update", updateHandler);
+    if (CurrentState?.length > 0) {
+      Y.applyUpdate(docRef.current, CurrentState);
+    }
+
+    docRef.current.on("update", updateHandler);
+
     return () => {
-      docRef.current?.off("update", updateHandler);
+      docRef.current.off("update", updateHandler);
     };
-  }, [doc_id]);
+  }, [doc_id, CurrentState, onChangeState]);
 
   if (!isMounted || !editor) return null;
 
