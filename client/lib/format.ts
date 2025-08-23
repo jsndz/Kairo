@@ -9,7 +9,6 @@ export async function parseMessage(msg: Blob | ArrayBuffer): Promise<{
   type: number;
   payload: Uint8Array;
 }> {
-  // Ensure we always work with ArrayBuffer
   const buffer =
     msg instanceof Blob ? await msg.arrayBuffer() : (msg as ArrayBuffer);
 

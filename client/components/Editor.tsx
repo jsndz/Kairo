@@ -14,22 +14,25 @@ import { createMessage, parseMessage } from "@/lib/format";
 interface EditorPageProps {
   onChangeState?: (state: Uint8Array) => void;
   CurrentState: Uint8Array;
+  initialState: Uint8Array;
 }
 
 export default function EditorPage({
   onChangeState,
   CurrentState,
+  initialState,
 }: EditorPageProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { id } = useParams<{ id: string }>();
-
   const wsRef = useRef<WebSocket | null>(null);
-  const docRef = useRef<Y.Doc>(new Y.Doc());
-
+  const docRef = useRef<Y.Doc | null>(null);
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  if (!docRef.current) {
+    docRef.current = new Y.Doc();
+  }
   const doc_id = parseInt(id!);
 
   const editor = useEditor({
@@ -41,69 +44,80 @@ export default function EditorPage({
     ],
     immediatelyRender: false,
   });
+  useEffect(() => {
+    if (initialState && initialState.length > 0) {
+      try {
+        Y.applyUpdate(docRef.current!, initialState);
+      } catch (e) {
+        console.error("Failed to load initial state", e);
+      }
+    }
+  }, [initialState]);
 
   useEffect(() => {
-    if (wsRef.current) return;
+    if (!wsRef.current) {
+      const token = localStorage.getItem("ws_token");
+      const ws = new WebSocket(`ws://localhost:3004/ws`);
+      wsRef.current = ws;
 
-    const token = localStorage.getItem("ws_token");
-    const ws = new WebSocket(`ws://localhost:3004/ws`);
-    wsRef.current = ws;
+      ws.onopen = () => {
+        const payload = new TextEncoder().encode(
+          JSON.stringify({ token, doc_id })
+        );
+        ws.send(createMessage(2, payload));
+      };
 
-    ws.onopen = () => {
-      const payload = new TextEncoder().encode(
-        JSON.stringify({ token, doc_id })
-      );
-      ws.send(createMessage(2, payload));
-    };
+      ws.onmessage = async (event) => {
+        // [0, ...yjs_update_bytes] for document updates
+        // [1, ...awareness_bytes] for awareness updates
+        // [2, ...json_bytes] for join
+        const { type, payload } = await parseMessage(event.data);
+        console.log(type, payload);
 
-    ws.onmessage = async (event) => {
-      const data =
-        event.data instanceof Blob
-          ? new Uint8Array(await event.data.arrayBuffer())
-          : event.data;
+        switch (type) {
+          case 0:
+            Y.applyUpdate(docRef.current!, payload);
+            break;
+          case 1:
+            break;
+          // will be completed
+          case 2:
+            toast(String(payload));
+            break;
+        }
+      };
 
-      const { type, payload } = await parseMessage(data);
-
-      switch (type) {
-        case 0: // document update
-          Y.applyUpdate(docRef.current, payload);
-          break;
-        case 1: // awareness update (TODO)
-          break;
-        case 2: // join message
-          toast(String(payload));
-          break;
-      }
-    };
-
-    ws.onclose = () => {
-      wsRef.current = null;
-    };
+      ws.onclose = () => {
+        wsRef.current = null;
+      };
+    }
 
     return () => {
-      ws.close();
+      wsRef.current?.close();
       wsRef.current = null;
     };
   }, [doc_id]);
 
   useEffect(() => {
-    const updateHandler = (update: Uint8Array) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(createMessage(0, update));
-      }
-      onChangeState?.(update);
-    };
-
-    if (CurrentState?.length > 0) {
-      Y.applyUpdate(docRef.current, CurrentState);
+    if (CurrentState && CurrentState.length > 0) {
+      Y.applyUpdate(docRef.current!, CurrentState);
     }
 
-    docRef.current.on("update", updateHandler);
+    const updateHandler = (update: Uint8Array) => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(createMessage(0, update));
+      }
 
-    return () => {
-      docRef.current.off("update", updateHandler);
+      if (onChangeState) {
+        onChangeState(update);
+      }
     };
-  }, [doc_id, CurrentState, onChangeState]);
+
+    docRef.current?.on("update", updateHandler);
+    return () => {
+      docRef.current?.off("update", updateHandler);
+    };
+  }, [doc_id]);
 
   if (!isMounted || !editor) return null;
 
