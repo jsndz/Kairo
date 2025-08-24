@@ -86,9 +86,8 @@ async function getDocContent(id: number): Promise<Uint8Array | null> {
       headers: { Accept: "application/octet-stream" },
       responseType: "arraybuffer",
     });
-    console.log(res.data);
 
-    return res.data;
+    return new Uint8Array(res.data);
   } catch {
     return null;
   }

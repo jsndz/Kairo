@@ -117,7 +117,7 @@ func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 
 	ctx.SetCookie("kairo_ws_token", wsTokenResp.Token, 300, "/", "", false, false)
 
-	log.Println(accept)
+	log.Println(docResp.Doc.CurrentState)
 
 	switch accept{
 		case "application/json":{
@@ -133,9 +133,7 @@ func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 			})
 		}
 	    case "application/octet-stream":{
-			ctx.JSON(200, gin.H{
-					"content": docResp.Doc.CurrentState,
-			})
+			    ctx.Data(200, "application/octet-stream", docResp.Doc.CurrentState)
 		}
 	}
 }

@@ -2,7 +2,6 @@ export interface Docs {
   id: number;
   user_id: number;
   title: string;
-  current_state: Uint8Array;
   created_at: string;
   updated_at: string;
 }

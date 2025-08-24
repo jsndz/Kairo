@@ -72,7 +72,6 @@ export default function EditorPage({
         // [1, ...awareness_bytes] for awareness updates
         // [2, ...json_bytes] for join
         const { type, payload } = await parseMessage(event.data);
-        console.log(type, payload);
 
         switch (type) {
           case 0:

@@ -62,6 +62,7 @@ func (r *DocRepository) GetFromId(ID uint32) (*model.Document ,error){
 	if err != nil {
 		return nil, err
 	}
+log.Printf("%v", doc.CurrentState)
 	return &doc,nil
 }
 

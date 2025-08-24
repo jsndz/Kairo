@@ -29,7 +29,7 @@ export function useDoc() {
     try {
       const meta = await docService.getDocMeta(id);
       const content = await docService.getDocContent(id);
-      console.log("D", { meta, content });
+      console.log(typeof content, content);
 
       return { meta, content };
     } catch (err: any) {
