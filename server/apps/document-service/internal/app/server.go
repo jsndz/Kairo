@@ -73,3 +73,14 @@ func (s *DocServer) CreateDelta(ctx context.Context, req *docpb.CreateDeltaReque
 	}
 	return resp, nil
 }
+
+
+func (s *DocServer) AutoSave(ctx context.Context, req *docpb.AutoSaveRequest) (*docpb.AutoSaveResponse, error) {
+	resp, err := s.h.Save(ctx, req)
+	if err != nil {
+		log.Println("Save error:", err)
+		return resp, err
+	}
+	return resp, nil
+}
+

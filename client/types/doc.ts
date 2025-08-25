@@ -17,3 +17,8 @@ export interface UpdateDocResponse {
   doc?: Docs;
   message?: string;
 }
+
+export interface Save {
+  success: boolean;
+  at: Date;
+}

@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"log"
-
 	"github.com/jsndz/kairo/apps/document-service/internal/app/model"
 	y_crdt "github.com/skyterra/y-crdt"
 )
@@ -13,7 +11,6 @@ func CombineDeltaState(current_state []byte,deltas *[]model.DocumentUpdate) ( []
 	for _, d := range *deltas {
 		updates = append(updates, d.UpdateState)
 	}
-	log.Println(updates)
 	newState := y_crdt.MergeUpdates(
 		updates,
 		func(b []byte) *y_crdt.UpdateDecoderV1 {
@@ -24,6 +21,5 @@ func CombineDeltaState(current_state []byte,deltas *[]model.DocumentUpdate) ( []
 		},
 		false,
 	)
-	log.Println(newState)
 	return newState,nil
 }

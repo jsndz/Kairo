@@ -1,10 +1,11 @@
 import { docService } from "@/services/doc";
-import { Docs } from "@/types/doc";
+import { Docs, Save } from "@/types/doc";
 import { useCallback, useState } from "react";
 import { useAuth } from "./useAuth";
 
 export function useDoc() {
   const [docs, setDocs] = useState<Docs[]>();
+  const [save, setSave] = useState<Save>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -92,11 +93,28 @@ export function useDoc() {
     },
     []
   );
+  const AutoSave = useCallback(async (id: number) => {
+    setLoading(true);
+    try {
+      const res = await docService.AutoSave(id);
+      if (res) {
+        setSave({ success: true, at: new Date() });
+      } else {
+        throw new Error("Failed to save document");
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
     docs,
     loading,
     error,
+    save,
+    AutoSave,
     changeTitle,
     fetchDocs,
     createDoc,

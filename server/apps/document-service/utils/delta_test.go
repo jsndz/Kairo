@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/jsndz/kairo/apps/document-service/internal/app/model"
@@ -41,7 +40,6 @@ var deltas []model.DocumentUpdate
 		}
 		deltas = append(deltas, model.DocumentUpdate{UpdateState: b})
 	}
-	log.Println(deltas[0].UpdateState)
 	newState, err := CombineDeltaState(current, &deltas)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

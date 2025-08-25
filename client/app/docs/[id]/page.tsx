@@ -24,8 +24,9 @@ interface DocumentMeta {
   user_id: number;
 }
 const EditPage = () => {
+  const isFirstEdit = useRef(true);
   const { id } = useParams<{ id: string }>();
-  const { updateDoc, getDocById, changeTitle } = useDoc();
+  const { updateDoc, getDocById, changeTitle, AutoSave } = useDoc();
   const [title, setTitle] = useState("LOADING");
   const [editingTitle, setEditingTitle] = useState(false);
   const [currentState, setCurrentState] = useState<Uint8Array>(
@@ -34,6 +35,7 @@ const EditPage = () => {
   const [isMounted, setIsMounted] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const docRef = useRef<Y.Doc | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const [documentMeta, setDocumentMeta] = useState<Docs | null>(null);
 
   useEffect(() => {
@@ -135,7 +137,13 @@ const EditPage = () => {
     if (currentState && currentState.length > 0) {
       Y.applyUpdate(docRef.current!, currentState);
     }
-
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = window.setTimeout(() => {
+      console.log("AutoSaving after pause:", doc_id);
+      AutoSave(doc_id!);
+    }, 2000);
     const updateHandler = (update: Uint8Array) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(createMessage(0, update));
@@ -146,6 +154,9 @@ const EditPage = () => {
     docRef.current?.on("update", updateHandler);
     return () => {
       docRef.current?.off("update", updateHandler);
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, [doc_id]);
 

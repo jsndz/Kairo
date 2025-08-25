@@ -117,7 +117,6 @@ func (h *DocHandlers) GetDoc(ctx *gin.Context) {
 
 	ctx.SetCookie("kairo_ws_token", wsTokenResp.Token, 300, "/", "", false, false)
 
-	log.Println(docResp.Doc.CurrentState)
 
 	switch accept{
 		case "application/json":{
@@ -160,6 +159,21 @@ func (h *DocHandlers) ChangeDocName(ctx *gin.Context) {
 	}
 	ctx.JSON(200, gin.H{
 		"new_title": docResp.NewTitle,
+	})
+}
+
+
+func (h *DocHandlers) Save(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	docID, err := strconv.ParseUint(idStr, 10, 32)
+	docResp, err := h.DocClient.AutoSave(ctx, &docpb.AutoSaveRequest{DocId: uint32(docID)})
+	log.Println(err)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Unable to save document "})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"Success": docResp.Success,
 	})
 }
 

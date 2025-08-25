@@ -18,4 +18,6 @@ func DocRoute(router *gin.RouterGroup, h handlers.DocHandlers){
 
 	router.GET("/doc/:id",h.GetDoc)
 	router.GET("/:id",h.GetUserDocs)
+
+	router.GET("/save/:id",h.Save)
 }

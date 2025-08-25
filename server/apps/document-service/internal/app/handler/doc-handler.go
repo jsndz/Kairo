@@ -95,3 +95,18 @@ func (h *DocHandler) ChangeDocName(ctx context.Context,req *docpb.ChangeDocNameR
 	
 	return resp,err
 }
+
+func (h *DocHandler) Save(ctx context.Context,req *docpb.AutoSaveRequest)(*docpb.AutoSaveResponse,error){
+	_,err := h.DocService.Save(req.DocId)
+	if err != nil {
+		resp:=&docpb.AutoSaveResponse{
+			Success:false,
+		}
+        return resp, err
+    }
+	resp:=&docpb.AutoSaveResponse{
+		Success:true,
+	}
+	
+	return resp,err
+}

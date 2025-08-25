@@ -100,7 +100,7 @@ func (s *DocService) ChangeTitle(doc_id uint32,new_title string) (string, error)
 }
 
 
-func (s *DocService) AutoSave(doc_id uint32)(*model.Document,error){
+func (s *DocService) Save(doc_id uint32)(*model.Document,error){
 	doc ,err := s.GetDoc(doc_id)
 	if err != nil{
 		return nil,err

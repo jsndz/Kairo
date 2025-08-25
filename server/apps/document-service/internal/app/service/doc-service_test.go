@@ -1,7 +1,6 @@
 package service
 
 import (
-	"log"
 	"testing"
 
 	"github.com/jsndz/kairo/pkg/db"
@@ -20,7 +19,7 @@ func TestAutoSave(t *testing.T) {
 	}
 
 	s := NewDocService(database)
-	doc, err := s.AutoSave(1)
+	doc, err := s.Save(1)
 	if err != nil {
 		t.Fatalf("AutoSave returned error: %v", err)
 	}
@@ -31,5 +30,4 @@ func TestAutoSave(t *testing.T) {
 	if doc.ID != 1 {
 		t.Errorf("expected doc ID 1, got %d", doc.ID)
 	}
-	log.Println(string(doc.CurrentState))
 }

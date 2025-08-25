@@ -104,6 +104,17 @@ async function getUserDocs(userId: number): Promise<Docs[]> {
   }
 }
 
+async function AutoSave(id: number): Promise<Boolean> {
+  try {
+    const res = await axios.get(`${API_BASE}/save/${id}`, {
+      withCredentials: true,
+    });
+    return res.data.success;
+  } catch {
+    return false;
+  }
+}
+
 export const docService = {
   createDoc,
   updateDoc,
@@ -111,4 +122,5 @@ export const docService = {
   getDocContent,
   getUserDocs,
   updateName,
+  AutoSave,
 };
