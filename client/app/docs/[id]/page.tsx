@@ -141,7 +141,6 @@ const EditPage = () => {
       clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = window.setTimeout(() => {
-      console.log("AutoSaving after pause:", doc_id);
       AutoSave(doc_id!);
     }, 2000);
     const updateHandler = (update: Uint8Array) => {
