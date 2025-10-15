@@ -6,7 +6,7 @@ import (
 )
 
 func NewAuthClient() (authpb.AuthServiceClient,*grpc.ClientConn) {
-	conn:= dial("localhost:3001")
+	conn:= CreateClient("localhost:3001")
 	authClient := authpb.NewAuthServiceClient(conn)
 	return authClient,conn
 }

@@ -21,3 +21,8 @@ func DocRoute(router *gin.RouterGroup, h handlers.DocHandlers){
 
 	router.GET("/save/:id",h.Save)
 }
+
+
+func AiRoute(router *gin.RouterGroup, h handlers.AIHandler) {
+	router.GET("/summarize/:id",)
+}

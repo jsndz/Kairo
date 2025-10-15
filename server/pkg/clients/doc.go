@@ -6,7 +6,7 @@ import (
 )
 
 func NewDocClient() (docpb.DocServiceClient,*grpc.ClientConn) {
-	conn:= dial("localhost:3002")
+	conn:= CreateClient("localhost:3002")
 	docClient := docpb.NewDocServiceClient(conn)
 	return docClient,conn
 }

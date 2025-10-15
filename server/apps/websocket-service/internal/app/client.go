@@ -58,7 +58,7 @@ func (c *Client) HandleEvents(msgType uint,payload []uint8 ,h *Hub) {
 	case 0:
 		c.handleUpdate(payload)
 	case 1:
-		//will be done later for awareness
+		
 	case 2:
 		c.handleJoin(payload, h)
 	

@@ -48,10 +48,6 @@ func main(){
 		Rooms: make(map[uint32]*app.Room),
 		Doc: docClient,
 	}
-
-	
-	
-	
 	http.HandleFunc("/ws",wsHandler(&hub))
 	log.Println("Web Socket Server started on :3004")
     err := http.ListenAndServe(":3004", nil)

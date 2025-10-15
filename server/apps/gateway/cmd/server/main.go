@@ -27,6 +27,12 @@ func main(){
 		DocClient: docClient,
 		AuthClient: authClient,
 	}
+
+	aiClient,aiconn := clients.NewAIClient()
+	defer aiconn.Close()
+	aiHandler := handlers.AIHandler{
+		AiClient: aiClient,
+	}
 	
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -46,6 +52,9 @@ func main(){
 	route.DocRoute(doc,docHandlers)
 	
 
+	ai := api.Group("/ai")
+	ai.Use(authHandlers.ValidationMiddleware())
+	route.AiRoute(ai,aiHandler)
 	
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
