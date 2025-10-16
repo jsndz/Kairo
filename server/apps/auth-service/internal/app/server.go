@@ -38,7 +38,7 @@ func (s *AuthServer) SignIn(ctx context.Context, req *authpb.SignInRequest) (*au
 }
 
 func (s *AuthServer) Validate(ctx context.Context, req *authpb.ValidateRequest) (*authpb.ValidateResponse, error) {
-	 res := s.h.Validate(ctx,req)
+	res := s.h.Validate(ctx,req)
     return res, nil
 }
 
@@ -48,10 +48,10 @@ func (s *AuthServer) CreateWSToken(ctx context.Context, req *authpb.CreateWSToke
 	if err!=nil{
 		log.Println(err)
 	}
-   return res, nil
+   	return res, nil
 }
 
 func (s *AuthServer) AuthenticateWS(ctx context.Context, req *authpb.AuthenticateWSRequest) (*authpb.AuthenticateWSResponse, error) {
 	res := s.h.AuthenticateWS(ctx,req)
-   return res, nil
+   	return res, nil
 }
