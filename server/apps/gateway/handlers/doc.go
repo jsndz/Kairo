@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -167,7 +166,6 @@ func (h *DocHandlers) Save(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	docID, err := strconv.ParseUint(idStr, 10, 32)
 	docResp, err := h.DocClient.AutoSave(ctx, &docpb.AutoSaveRequest{DocId: uint32(docID)})
-	log.Println(err)
 	if err != nil {
 		ctx.JSON(400, gin.H{"error": "Unable to save document "})
 		return
@@ -176,5 +174,3 @@ func (h *DocHandlers) Save(ctx *gin.Context) {
 		"Success": docResp.Success,
 	})
 }
-
-

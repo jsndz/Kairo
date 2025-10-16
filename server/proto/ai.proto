@@ -6,14 +6,31 @@ option go_package = "github.com/jsndz/kairo-proto/ai;aipb";
 
 
 service AIService {
-    rpc Summarize (SummarizeRequest) returns (SummarizeResponse);
+    rpc Summarize (SummarizeRequest) returns (stream SummarizeResponse);
+    rpc Rewrite (RewriteRequest) returns (stream RewriteResponse);
 }
 
 
 message SummarizeRequest {
-    string text = 1;
+    string doc_id = 1;
+    string user_id = 2;
 }
 
 message SummarizeResponse {
     string summary = 1;
+    bool done = 2;
+}
+
+
+message RewriteRequest {
+    string doc_id = 1;
+    string user_id = 2;
+    int64 from =3;
+    int64 to = 4;
+    string prompt = 5;
+}
+
+message RewriteResponse {
+    string text = 1;
+    bool done = 2;
 }
