@@ -15,3 +15,13 @@ func NewAiServer(h *handler.AiHandler) (*AiServer) {
 		h:h,
 	}
 }
+
+
+
+func (s *AiServer) Summarize(req *aipb.SummarizeRequest, stream aipb.AIService_SummarizeServer) error {
+    return s.h.Summarize(stream.Context(),req,stream)
+}
+
+func (s *AiServer) Rewrite(req *aipb.RewriteRequest, stream aipb.AIService_RewriteServer) error {
+    return s.h.Rewrite(stream.Context(),req,stream)
+}

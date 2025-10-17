@@ -20,13 +20,15 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	AIService_Summarize_FullMethodName = "/ai.AIService/Summarize"
+	AIService_Rewrite_FullMethodName   = "/ai.AIService/Rewrite"
 )
 
 // AIServiceClient is the client API for AIService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AIServiceClient interface {
-	Summarize(ctx context.Context, in *SummarizeRequest, opts ...grpc.CallOption) (*SummarizeResponse, error)
+	Summarize(ctx context.Context, in *SummarizeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SummarizeResponse], error)
+	Rewrite(ctx context.Context, in *RewriteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RewriteResponse], error)
 }
 
 type aIServiceClient struct {
@@ -37,21 +39,50 @@ func NewAIServiceClient(cc grpc.ClientConnInterface) AIServiceClient {
 	return &aIServiceClient{cc}
 }
 
-func (c *aIServiceClient) Summarize(ctx context.Context, in *SummarizeRequest, opts ...grpc.CallOption) (*SummarizeResponse, error) {
+func (c *aIServiceClient) Summarize(ctx context.Context, in *SummarizeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SummarizeResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SummarizeResponse)
-	err := c.cc.Invoke(ctx, AIService_Summarize_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &AIService_ServiceDesc.Streams[0], AIService_Summarize_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[SummarizeRequest, SummarizeResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AIService_SummarizeClient = grpc.ServerStreamingClient[SummarizeResponse]
+
+func (c *aIServiceClient) Rewrite(ctx context.Context, in *RewriteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RewriteResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AIService_ServiceDesc.Streams[1], AIService_Rewrite_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[RewriteRequest, RewriteResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AIService_RewriteClient = grpc.ServerStreamingClient[RewriteResponse]
 
 // AIServiceServer is the server API for AIService service.
 // All implementations must embed UnimplementedAIServiceServer
 // for forward compatibility.
 type AIServiceServer interface {
-	Summarize(context.Context, *SummarizeRequest) (*SummarizeResponse, error)
+	Summarize(*SummarizeRequest, grpc.ServerStreamingServer[SummarizeResponse]) error
+	Rewrite(*RewriteRequest, grpc.ServerStreamingServer[RewriteResponse]) error
 	mustEmbedUnimplementedAIServiceServer()
 }
 
@@ -62,8 +93,11 @@ type AIServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAIServiceServer struct{}
 
-func (UnimplementedAIServiceServer) Summarize(context.Context, *SummarizeRequest) (*SummarizeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Summarize not implemented")
+func (UnimplementedAIServiceServer) Summarize(*SummarizeRequest, grpc.ServerStreamingServer[SummarizeResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method Summarize not implemented")
+}
+func (UnimplementedAIServiceServer) Rewrite(*RewriteRequest, grpc.ServerStreamingServer[RewriteResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method Rewrite not implemented")
 }
 func (UnimplementedAIServiceServer) mustEmbedUnimplementedAIServiceServer() {}
 func (UnimplementedAIServiceServer) testEmbeddedByValue()                   {}
@@ -86,23 +120,27 @@ func RegisterAIServiceServer(s grpc.ServiceRegistrar, srv AIServiceServer) {
 	s.RegisterService(&AIService_ServiceDesc, srv)
 }
 
-func _AIService_Summarize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SummarizeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _AIService_Summarize_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SummarizeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(AIServiceServer).Summarize(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AIService_Summarize_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AIServiceServer).Summarize(ctx, req.(*SummarizeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(AIServiceServer).Summarize(m, &grpc.GenericServerStream[SummarizeRequest, SummarizeResponse]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AIService_SummarizeServer = grpc.ServerStreamingServer[SummarizeResponse]
+
+func _AIService_Rewrite_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RewriteRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AIServiceServer).Rewrite(m, &grpc.GenericServerStream[RewriteRequest, RewriteResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AIService_RewriteServer = grpc.ServerStreamingServer[RewriteResponse]
 
 // AIService_ServiceDesc is the grpc.ServiceDesc for AIService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -110,12 +148,18 @@ func _AIService_Summarize_Handler(srv interface{}, ctx context.Context, dec func
 var AIService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ai.AIService",
 	HandlerType: (*AIServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Summarize",
-			Handler:    _AIService_Summarize_Handler,
+			StreamName:    "Summarize",
+			Handler:       _AIService_Summarize_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Rewrite",
+			Handler:       _AIService_Rewrite_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/ai.proto",
 }

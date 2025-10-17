@@ -23,7 +23,8 @@ const (
 
 type SummarizeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	DocId         string                 `protobuf:"bytes,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,9 +59,16 @@ func (*SummarizeRequest) Descriptor() ([]byte, []int) {
 	return file_proto_ai_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SummarizeRequest) GetText() string {
+func (x *SummarizeRequest) GetDocId() string {
 	if x != nil {
-		return x.Text
+		return x.DocId
+	}
+	return ""
+}
+
+func (x *SummarizeRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -68,6 +76,7 @@ func (x *SummarizeRequest) GetText() string {
 type SummarizeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Summary       string                 `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	Done          bool                   `protobuf:"varint,2,opt,name=done,proto3" json:"done,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -109,17 +118,164 @@ func (x *SummarizeResponse) GetSummary() string {
 	return ""
 }
 
+func (x *SummarizeResponse) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
+type RewriteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DocId         string                 `protobuf:"bytes,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	From          int64                  `protobuf:"varint,3,opt,name=from,proto3" json:"from,omitempty"`
+	To            int64                  `protobuf:"varint,4,opt,name=to,proto3" json:"to,omitempty"`
+	Prompt        string                 `protobuf:"bytes,5,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RewriteRequest) Reset() {
+	*x = RewriteRequest{}
+	mi := &file_proto_ai_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RewriteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RewriteRequest) ProtoMessage() {}
+
+func (x *RewriteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ai_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RewriteRequest.ProtoReflect.Descriptor instead.
+func (*RewriteRequest) Descriptor() ([]byte, []int) {
+	return file_proto_ai_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RewriteRequest) GetDocId() string {
+	if x != nil {
+		return x.DocId
+	}
+	return ""
+}
+
+func (x *RewriteRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *RewriteRequest) GetFrom() int64 {
+	if x != nil {
+		return x.From
+	}
+	return 0
+}
+
+func (x *RewriteRequest) GetTo() int64 {
+	if x != nil {
+		return x.To
+	}
+	return 0
+}
+
+func (x *RewriteRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+type RewriteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	Done          bool                   `protobuf:"varint,2,opt,name=done,proto3" json:"done,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RewriteResponse) Reset() {
+	*x = RewriteResponse{}
+	mi := &file_proto_ai_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RewriteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RewriteResponse) ProtoMessage() {}
+
+func (x *RewriteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_ai_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RewriteResponse.ProtoReflect.Descriptor instead.
+func (*RewriteResponse) Descriptor() ([]byte, []int) {
+	return file_proto_ai_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RewriteResponse) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *RewriteResponse) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
 var File_proto_ai_proto protoreflect.FileDescriptor
 
 const file_proto_ai_proto_rawDesc = "" +
 	"\n" +
-	"\x0eproto/ai.proto\x12\x02ai\"&\n" +
-	"\x10SummarizeRequest\x12\x12\n" +
-	"\x04text\x18\x01 \x01(\tR\x04text\"-\n" +
+	"\x0eproto/ai.proto\x12\x02ai\"B\n" +
+	"\x10SummarizeRequest\x12\x15\n" +
+	"\x06doc_id\x18\x01 \x01(\tR\x05docId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"A\n" +
 	"\x11SummarizeResponse\x12\x18\n" +
-	"\asummary\x18\x01 \x01(\tR\asummary2E\n" +
-	"\tAIService\x128\n" +
-	"\tSummarize\x12\x14.ai.SummarizeRequest\x1a\x15.ai.SummarizeResponseB&Z$github.com/jsndz/kairo-proto/ai;aipbb\x06proto3"
+	"\asummary\x18\x01 \x01(\tR\asummary\x12\x12\n" +
+	"\x04done\x18\x02 \x01(\bR\x04done\"|\n" +
+	"\x0eRewriteRequest\x12\x15\n" +
+	"\x06doc_id\x18\x01 \x01(\tR\x05docId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
+	"\x04from\x18\x03 \x01(\x03R\x04from\x12\x0e\n" +
+	"\x02to\x18\x04 \x01(\x03R\x02to\x12\x16\n" +
+	"\x06prompt\x18\x05 \x01(\tR\x06prompt\"9\n" +
+	"\x0fRewriteResponse\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\x12\x12\n" +
+	"\x04done\x18\x02 \x01(\bR\x04done2}\n" +
+	"\tAIService\x12:\n" +
+	"\tSummarize\x12\x14.ai.SummarizeRequest\x1a\x15.ai.SummarizeResponse0\x01\x124\n" +
+	"\aRewrite\x12\x12.ai.RewriteRequest\x1a\x13.ai.RewriteResponse0\x01B&Z$github.com/jsndz/kairo-proto/ai;aipbb\x06proto3"
 
 var (
 	file_proto_ai_proto_rawDescOnce sync.Once
@@ -133,16 +289,20 @@ func file_proto_ai_proto_rawDescGZIP() []byte {
 	return file_proto_ai_proto_rawDescData
 }
 
-var file_proto_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_ai_proto_goTypes = []any{
 	(*SummarizeRequest)(nil),  // 0: ai.SummarizeRequest
 	(*SummarizeResponse)(nil), // 1: ai.SummarizeResponse
+	(*RewriteRequest)(nil),    // 2: ai.RewriteRequest
+	(*RewriteResponse)(nil),   // 3: ai.RewriteResponse
 }
 var file_proto_ai_proto_depIdxs = []int32{
 	0, // 0: ai.AIService.Summarize:input_type -> ai.SummarizeRequest
-	1, // 1: ai.AIService.Summarize:output_type -> ai.SummarizeResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: ai.AIService.Rewrite:input_type -> ai.RewriteRequest
+	1, // 2: ai.AIService.Summarize:output_type -> ai.SummarizeResponse
+	3, // 3: ai.AIService.Rewrite:output_type -> ai.RewriteResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -159,7 +319,7 @@ func file_proto_ai_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ai_proto_rawDesc), len(file_proto_ai_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -11,10 +11,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-
-
-
-
 func main(){
 	lis,err :=net.Listen("tcp",":3003")
 	if err!=nil{

@@ -1,6 +1,11 @@
 package handler
 
-import "github.com/jsndz/kairo/apps/ai-service/internal/app/service"
+import (
+	"context"
+
+	"github.com/jsndz/kairo/apps/ai-service/internal/app/service"
+	aipb "github.com/jsndz/kairo/gen/go/proto/ai"
+)
 
 
 type AiHandler struct {
@@ -14,11 +19,11 @@ func NewAiHandler() (*AiHandler) {
 	}
 }
 
-func (h *AiHandler)Summarize()  {
-	
+func (h *AiHandler) Summarize(ctx context.Context, req *aipb.SummarizeRequest, stream aipb.AIService_SummarizeServer) (error)  {
+	return nil
 }
 
 
-func (h *AiHandler)Rewrite()  {
-	
+func (h *AiHandler) Rewrite(ctx context.Context, req *aipb.RewriteRequest, stream aipb.AIService_RewriteServer) (error)  {
+	return	nil
 }

@@ -17,49 +17,47 @@ type Response struct {
 }
 
 func StreamResponse(model string, prompt string) (<-chan string, <-chan error) {
-	outChan := make(chan string)
-	errChan := make(chan error, 1)
+	outchan := make(chan string)
+	errchan := make(chan error,1)
 
-	go func() {
-		defer close(outChan)
-		defer close(errChan)
 
-		reqBody := Request{
-			Model:  model,
+	go func ()  {
+		defer close(outchan)
+		defer close(errchan)
+		req := Request{
+			Model: model,
 			Prompt: prompt,
 		}
 
-		body, err := json.Marshal(reqBody)
-		if err != nil {
-			errChan <- err
+		data ,err := json.Marshal(req);
+		if err!=nil{
+			errchan <-err
 			return
 		}
 
-		resp, err := http.Post("http://localhost:11434/api/generate", "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			errChan <- err
+		resp,err := http.Post("http://localhost:11434/api/generate", "application/json",bytes.NewBuffer(data))
+		if err!=nil{
+			errchan <-err
 			return
 		}
 		defer resp.Body.Close()
 
 		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
-			line := scanner.Text()
-			var msg Response
-			if err := json.Unmarshal([]byte(line), &msg); err != nil {
-				errChan <- err
+		for scanner.Scan(){
+			line := scanner.Text() 
+			var msg Response 
+			if err := json.Unmarshal([]byte(line), &msg); err != nil { 
+				errchan <- err 
 				continue
-			}
-			outChan <- msg.Response
-			if msg.Done {
-				break
-			}
+			} 
+			outchan <- msg.Response 
+			if msg.Done { break }
 		}
-
-		if err := scanner.Err(); err != nil {
-			errChan <- err
+		if err := scanner.Err(); err != nil { 
+			errchan <- err 
 		}
+		
 	}()
 
-	return outChan, errChan
+	return outchan,errchan
 }
