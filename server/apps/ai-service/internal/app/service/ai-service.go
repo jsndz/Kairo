@@ -16,7 +16,7 @@ func NewAiService() (*AiService) {
 }
 
 func (*AiService) Summarize(req *aipb.SummarizeRequest,stream aipb.AIService_SummarizeServer) error {
-
+	
 	outchan,errchan := inference.StreamResponse("mini","")
 	select {
 		case chunks,ok := <-outchan :
@@ -39,7 +39,6 @@ func (*AiService) Summarize(req *aipb.SummarizeRequest,stream aipb.AIService_Sum
 				return err
 			}
 			errchan = nil 
-		
 	}
 	return nil
 }

@@ -23,8 +23,8 @@ const (
 
 type SummarizeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DocId         string                 `protobuf:"bytes,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DocId         uint32                 `protobuf:"varint,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -59,18 +59,18 @@ func (*SummarizeRequest) Descriptor() ([]byte, []int) {
 	return file_proto_ai_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SummarizeRequest) GetDocId() string {
+func (x *SummarizeRequest) GetDocId() uint32 {
 	if x != nil {
 		return x.DocId
 	}
-	return ""
+	return 0
 }
 
-func (x *SummarizeRequest) GetUserId() string {
+func (x *SummarizeRequest) GetUserId() uint32 {
 	if x != nil {
 		return x.UserId
 	}
-	return ""
+	return 0
 }
 
 type SummarizeResponse struct {
@@ -127,8 +127,8 @@ func (x *SummarizeResponse) GetDone() bool {
 
 type RewriteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DocId         string                 `protobuf:"bytes,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DocId         uint32                 `protobuf:"varint,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	From          int64                  `protobuf:"varint,3,opt,name=from,proto3" json:"from,omitempty"`
 	To            int64                  `protobuf:"varint,4,opt,name=to,proto3" json:"to,omitempty"`
 	Prompt        string                 `protobuf:"bytes,5,opt,name=prompt,proto3" json:"prompt,omitempty"`
@@ -166,18 +166,18 @@ func (*RewriteRequest) Descriptor() ([]byte, []int) {
 	return file_proto_ai_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RewriteRequest) GetDocId() string {
+func (x *RewriteRequest) GetDocId() uint32 {
 	if x != nil {
 		return x.DocId
 	}
-	return ""
+	return 0
 }
 
-func (x *RewriteRequest) GetUserId() string {
+func (x *RewriteRequest) GetUserId() uint32 {
 	if x != nil {
 		return x.UserId
 	}
-	return ""
+	return 0
 }
 
 func (x *RewriteRequest) GetFrom() int64 {
@@ -259,14 +259,14 @@ const file_proto_ai_proto_rawDesc = "" +
 	"\n" +
 	"\x0eproto/ai.proto\x12\x02ai\"B\n" +
 	"\x10SummarizeRequest\x12\x15\n" +
-	"\x06doc_id\x18\x01 \x01(\tR\x05docId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"A\n" +
+	"\x06doc_id\x18\x01 \x01(\rR\x05docId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\rR\x06userId\"A\n" +
 	"\x11SummarizeResponse\x12\x18\n" +
 	"\asummary\x18\x01 \x01(\tR\asummary\x12\x12\n" +
 	"\x04done\x18\x02 \x01(\bR\x04done\"|\n" +
 	"\x0eRewriteRequest\x12\x15\n" +
-	"\x06doc_id\x18\x01 \x01(\tR\x05docId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
+	"\x06doc_id\x18\x01 \x01(\rR\x05docId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\rR\x06userId\x12\x12\n" +
 	"\x04from\x18\x03 \x01(\x03R\x04from\x12\x0e\n" +
 	"\x02to\x18\x04 \x01(\x03R\x02to\x12\x16\n" +
 	"\x06prompt\x18\x05 \x01(\tR\x06prompt\"9\n" +

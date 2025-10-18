@@ -12,8 +12,8 @@ service AIService {
 
 
 message SummarizeRequest {
-    string doc_id = 1;
-    string user_id = 2;
+    uint32 doc_id = 1;
+    uint32 user_id = 2;
 }
 
 message SummarizeResponse {
@@ -23,8 +23,8 @@ message SummarizeResponse {
 
 
 message RewriteRequest {
-    string doc_id = 1;
-    string user_id = 2;
+    uint32 doc_id = 1;
+    uint32 user_id = 2;
     int64 from =3;
     int64 to = 4;
     string prompt = 5;
