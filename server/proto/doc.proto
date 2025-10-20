@@ -12,6 +12,7 @@ service DocService {
     rpc ChangeDocName (ChangeDocNameRequest) returns (ChangeDocNameResponse);
     rpc CreateDelta (CreateDeltaRequest) returns (CreateDeltaResponse);
     rpc AutoSave (AutoSaveRequest) returns (AutoSaveResponse);
+    rpc GetTextContent (GetTextContentRequest) returns (GetTextContentResponse);
 }
 
 message CreateNewDocumentRequest {
@@ -83,3 +84,14 @@ message AutoSaveRequest {
 message AutoSaveResponse {
     bool success = 1;
 }
+
+
+message GetTextContentRequest {
+    uint32 doc_id = 1;
+}
+
+message GetTextContentResponse {
+    string text = 1;
+}
+
+

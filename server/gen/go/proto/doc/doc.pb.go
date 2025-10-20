@@ -745,6 +745,94 @@ func (x *AutoSaveResponse) GetSuccess() bool {
 	return false
 }
 
+type GetTextContentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DocId         uint32                 `protobuf:"varint,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTextContentRequest) Reset() {
+	*x = GetTextContentRequest{}
+	mi := &file_proto_doc_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTextContentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTextContentRequest) ProtoMessage() {}
+
+func (x *GetTextContentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTextContentRequest.ProtoReflect.Descriptor instead.
+func (*GetTextContentRequest) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetTextContentRequest) GetDocId() uint32 {
+	if x != nil {
+		return x.DocId
+	}
+	return 0
+}
+
+type GetTextContentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTextContentResponse) Reset() {
+	*x = GetTextContentResponse{}
+	mi := &file_proto_doc_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTextContentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTextContentResponse) ProtoMessage() {}
+
+func (x *GetTextContentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_doc_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTextContentResponse.ProtoReflect.Descriptor instead.
+func (*GetTextContentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_doc_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetTextContentResponse) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
 var File_proto_doc_proto protoreflect.FileDescriptor
 
 const file_proto_doc_proto_rawDesc = "" +
@@ -789,7 +877,11 @@ const file_proto_doc_proto_rawDesc = "" +
 	"\x0fAutoSaveRequest\x12\x15\n" +
 	"\x06doc_id\x18\x01 \x01(\rR\x05docId\",\n" +
 	"\x10AutoSaveResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xd4\x03\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\".\n" +
+	"\x15GetTextContentRequest\x12\x15\n" +
+	"\x06doc_id\x18\x01 \x01(\rR\x05docId\",\n" +
+	"\x16GetTextContentResponse\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text2\x9f\x04\n" +
 	"\n" +
 	"DocService\x12R\n" +
 	"\x11CreateNewDocument\x12\x1d.doc.CreateNewDocumentRequest\x1a\x1e.doc.CreateNewDocumentResponse\x12:\n" +
@@ -798,7 +890,8 @@ const file_proto_doc_proto_rawDesc = "" +
 	"\vGetUserDocs\x12\x17.doc.GetUserDocsRequest\x1a\x18.doc.GetUserDocsResponse\x12F\n" +
 	"\rChangeDocName\x12\x19.doc.ChangeDocNameRequest\x1a\x1a.doc.ChangeDocNameResponse\x12@\n" +
 	"\vCreateDelta\x12\x17.doc.CreateDeltaRequest\x1a\x18.doc.CreateDeltaResponse\x127\n" +
-	"\bAutoSave\x12\x14.doc.AutoSaveRequest\x1a\x15.doc.AutoSaveResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
+	"\bAutoSave\x12\x14.doc.AutoSaveRequest\x1a\x15.doc.AutoSaveResponse\x12I\n" +
+	"\x0eGetTextContent\x12\x1a.doc.GetTextContentRequest\x1a\x1b.doc.GetTextContentResponseB(Z&github.com/jsndz/kairo-proto/doc;docpbb\x06proto3"
 
 var (
 	file_proto_doc_proto_rawDescOnce sync.Once
@@ -812,7 +905,7 @@ func file_proto_doc_proto_rawDescGZIP() []byte {
 	return file_proto_doc_proto_rawDescData
 }
 
-var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_proto_doc_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_proto_doc_proto_goTypes = []any{
 	(*CreateNewDocumentRequest)(nil),  // 0: doc.CreateNewDocumentRequest
 	(*CreateNewDocumentResponse)(nil), // 1: doc.CreateNewDocumentResponse
@@ -829,6 +922,8 @@ var file_proto_doc_proto_goTypes = []any{
 	(*CreateDeltaResponse)(nil),       // 12: doc.CreateDeltaResponse
 	(*AutoSaveRequest)(nil),           // 13: doc.AutoSaveRequest
 	(*AutoSaveResponse)(nil),          // 14: doc.AutoSaveResponse
+	(*GetTextContentRequest)(nil),     // 15: doc.GetTextContentRequest
+	(*GetTextContentResponse)(nil),    // 16: doc.GetTextContentResponse
 }
 var file_proto_doc_proto_depIdxs = []int32{
 	2,  // 0: doc.CreateNewDocumentResponse.doc:type_name -> doc.Document
@@ -842,15 +937,17 @@ var file_proto_doc_proto_depIdxs = []int32{
 	9,  // 8: doc.DocService.ChangeDocName:input_type -> doc.ChangeDocNameRequest
 	11, // 9: doc.DocService.CreateDelta:input_type -> doc.CreateDeltaRequest
 	13, // 10: doc.DocService.AutoSave:input_type -> doc.AutoSaveRequest
-	1,  // 11: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
-	4,  // 12: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
-	6,  // 13: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
-	8,  // 14: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
-	10, // 15: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
-	12, // 16: doc.DocService.CreateDelta:output_type -> doc.CreateDeltaResponse
-	14, // 17: doc.DocService.AutoSave:output_type -> doc.AutoSaveResponse
-	11, // [11:18] is the sub-list for method output_type
-	4,  // [4:11] is the sub-list for method input_type
+	15, // 11: doc.DocService.GetTextContent:input_type -> doc.GetTextContentRequest
+	1,  // 12: doc.DocService.CreateNewDocument:output_type -> doc.CreateNewDocumentResponse
+	4,  // 13: doc.DocService.UpdateDoc:output_type -> doc.UpdateDocResponse
+	6,  // 14: doc.DocService.GetDoc:output_type -> doc.GetDocResponse
+	8,  // 15: doc.DocService.GetUserDocs:output_type -> doc.GetUserDocsResponse
+	10, // 16: doc.DocService.ChangeDocName:output_type -> doc.ChangeDocNameResponse
+	12, // 17: doc.DocService.CreateDelta:output_type -> doc.CreateDeltaResponse
+	14, // 18: doc.DocService.AutoSave:output_type -> doc.AutoSaveResponse
+	16, // 19: doc.DocService.GetTextContent:output_type -> doc.GetTextContentResponse
+	12, // [12:20] is the sub-list for method output_type
+	4,  // [4:12] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -867,7 +964,7 @@ func file_proto_doc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_doc_proto_rawDesc), len(file_proto_doc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

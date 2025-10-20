@@ -84,3 +84,11 @@ func (s *DocServer) AutoSave(ctx context.Context, req *docpb.AutoSaveRequest) (*
 	return resp, nil
 }
 
+func (s *DocServer) GetContent(ctx context.Context, req *docpb.GetTextContentRequest) (*docpb.GetTextContentResponse, error) {
+	resp, err := s.h.GetContent(ctx, req)
+	if err != nil {
+		log.Println("Get Content error:", err)
+		return resp, err
+	}
+	return resp, nil
+}

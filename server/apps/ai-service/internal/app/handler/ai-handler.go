@@ -23,11 +23,12 @@ func NewAiHandler(docClient docpb.DocServiceClient) (*AiHandler) {
 }
 
 func (h *AiHandler) Summarize(ctx context.Context, req *aipb.SummarizeRequest, stream aipb.AIService_SummarizeServer) (error)  {
-	doc,err := h.docClient.GetDoc(ctx,&docpb.GetDocRequest{ Id: req.DocId})
+	content, err := h.docClient.GetTextContent(ctx, &docpb.GetTextContentRequest{DocId: req.DocId})
 	if err!= nil{
 		return err
 	}
-	return nil
+	err = h.aiService.Summarize(content.Text,stream)
+	return err
 }
 
 

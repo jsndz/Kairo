@@ -110,3 +110,18 @@ func (h *DocHandler) Save(ctx context.Context,req *docpb.AutoSaveRequest)(*docpb
 	
 	return resp,err
 }
+
+func (h *DocHandler) GetContent(ctx context.Context,req *docpb.GetTextContentRequest)(*docpb.GetTextContentResponse,error){
+	content,err := h.DocService.GetTextContent(req.DocId)
+	if err != nil {
+		resp:=&docpb.GetTextContentResponse{
+			Text:"",
+		}
+        return resp, err
+    }
+	resp:=&docpb.GetTextContentResponse{
+		Text:content,
+	}
+	
+	return resp,err
+}

@@ -119,3 +119,13 @@ func (s *DocService) Save(doc_id uint32)(*model.Document,error){
 	}
 	return newDoc,err
 }
+
+func (s *DocService) GetTextContent(doc_id uint32)(string,error) {
+	doc,err := s.GetDoc(doc_id)
+	if err != nil{
+		return "",err
+	}
+	content := utils.GetContent(doc.CurrentState)
+
+	return content,nil
+}

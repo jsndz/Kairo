@@ -26,6 +26,7 @@ const (
 	DocService_ChangeDocName_FullMethodName     = "/doc.DocService/ChangeDocName"
 	DocService_CreateDelta_FullMethodName       = "/doc.DocService/CreateDelta"
 	DocService_AutoSave_FullMethodName          = "/doc.DocService/AutoSave"
+	DocService_GetTextContent_FullMethodName    = "/doc.DocService/GetTextContent"
 )
 
 // DocServiceClient is the client API for DocService service.
@@ -39,6 +40,7 @@ type DocServiceClient interface {
 	ChangeDocName(ctx context.Context, in *ChangeDocNameRequest, opts ...grpc.CallOption) (*ChangeDocNameResponse, error)
 	CreateDelta(ctx context.Context, in *CreateDeltaRequest, opts ...grpc.CallOption) (*CreateDeltaResponse, error)
 	AutoSave(ctx context.Context, in *AutoSaveRequest, opts ...grpc.CallOption) (*AutoSaveResponse, error)
+	GetTextContent(ctx context.Context, in *GetTextContentRequest, opts ...grpc.CallOption) (*GetTextContentResponse, error)
 }
 
 type docServiceClient struct {
@@ -119,6 +121,16 @@ func (c *docServiceClient) AutoSave(ctx context.Context, in *AutoSaveRequest, op
 	return out, nil
 }
 
+func (c *docServiceClient) GetTextContent(ctx context.Context, in *GetTextContentRequest, opts ...grpc.CallOption) (*GetTextContentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTextContentResponse)
+	err := c.cc.Invoke(ctx, DocService_GetTextContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DocServiceServer is the server API for DocService service.
 // All implementations must embed UnimplementedDocServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type DocServiceServer interface {
 	ChangeDocName(context.Context, *ChangeDocNameRequest) (*ChangeDocNameResponse, error)
 	CreateDelta(context.Context, *CreateDeltaRequest) (*CreateDeltaResponse, error)
 	AutoSave(context.Context, *AutoSaveRequest) (*AutoSaveResponse, error)
+	GetTextContent(context.Context, *GetTextContentRequest) (*GetTextContentResponse, error)
 	mustEmbedUnimplementedDocServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedDocServiceServer) CreateDelta(context.Context, *CreateDeltaRe
 }
 func (UnimplementedDocServiceServer) AutoSave(context.Context, *AutoSaveRequest) (*AutoSaveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AutoSave not implemented")
+}
+func (UnimplementedDocServiceServer) GetTextContent(context.Context, *GetTextContentRequest) (*GetTextContentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTextContent not implemented")
 }
 func (UnimplementedDocServiceServer) mustEmbedUnimplementedDocServiceServer() {}
 func (UnimplementedDocServiceServer) testEmbeddedByValue()                    {}
@@ -308,6 +324,24 @@ func _DocService_AutoSave_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DocService_GetTextContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTextContentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocServiceServer).GetTextContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocService_GetTextContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocServiceServer).GetTextContent(ctx, req.(*GetTextContentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DocService_ServiceDesc is the grpc.ServiceDesc for DocService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var DocService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AutoSave",
 			Handler:    _DocService_AutoSave_Handler,
+		},
+		{
+			MethodName: "GetTextContent",
+			Handler:    _DocService_GetTextContent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
