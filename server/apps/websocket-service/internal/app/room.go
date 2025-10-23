@@ -3,6 +3,7 @@ package app
 import (
 	"sync"
 
+	aipb "github.com/jsndz/kairo/gen/go/proto/ai"
 	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
 )
 
@@ -11,7 +12,7 @@ type Room struct {
 	clients map[uint32]*Client
 	mutex   sync.Mutex
 	Doc 	docpb.DocServiceClient
-
+	AI 		aipb.AIServiceClient
 }
 
 func (r *Room) AddClient(client *Client) {

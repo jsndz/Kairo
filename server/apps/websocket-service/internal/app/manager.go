@@ -3,6 +3,7 @@ package app
 import (
 	"sync"
 
+	aipb "github.com/jsndz/kairo/gen/go/proto/ai"
 	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
 )
 
@@ -11,6 +12,7 @@ type Hub struct {
     Rooms map[uint32]*Room
     Mutex sync.Mutex
     Doc docpb.DocServiceClient
+    AI aipb.AIServiceClient
 }
 
 func (h *Hub) GetOrCreateRoom(roomId uint32) *Room{

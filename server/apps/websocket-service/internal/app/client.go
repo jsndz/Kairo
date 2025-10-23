@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jsndz/kairo/apps/websocket-service/middleware"
+	aipb "github.com/jsndz/kairo/gen/go/proto/ai"
 	docpb "github.com/jsndz/kairo/gen/go/proto/doc"
 )
 
@@ -61,7 +63,8 @@ func (c *Client) HandleEvents(msgType uint,payload []uint8 ,h *Hub) {
 		
 	case 2:
 		c.handleJoin(payload, h)
-	
+	case 3:
+		c.handleSummarize()
 	default:
 		c.Send <- []uint8{}
 	}
@@ -119,6 +122,34 @@ func (c *Client) handleUpdate(message []uint8 ) {
 		log.Printf("failed to save delta for doc %d: %v", c.Room.DocId, err)
 	}
 	c.Room.Broadcast(c.UserId, message,0)
+}
+
+
+func (c *Client) handleSummarize(){
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	stream,err := c.Room.AI.Summarize(ctx,&aipb.SummarizeRequest{DocId:c.Room.DocId })
+	if err != nil {
+		log.Printf("failed to summarize %d: %v", c.Room.DocId, err)
+	}
+	for {
+		data ,err  := stream.Recv()
+		if err == io.EOF {
+			log.Println("Summarization complete")
+			break
+		}
+		if err != nil {
+			log.Printf("Stream receive error: %v", err)
+			break
+		}
+		c.Room.Broadcast(c.UserId, []byte(data.Summary), 0)
+
+		if data.Done {
+			log.Println("Summarization done signal received")
+			break
+		}
+	}
+	
 }
 
 func mustMarshal(v interface{}) json.RawMessage {

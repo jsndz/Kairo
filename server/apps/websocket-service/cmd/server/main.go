@@ -44,9 +44,12 @@ func main(){
 	env.Loadenv()
 	docClient,docconn:= clients.NewDocClient()
 	defer docconn.Close()
+	aiClient,aiconn := clients.NewAIClient()
+	defer aiconn.Close()
 	hub := app.Hub{
 		Rooms: make(map[uint32]*app.Room),
 		Doc: docClient,
+		AI : aiClient,
 	}
 	http.HandleFunc("/ws",wsHandler(&hub))
 	log.Println("Web Socket Server started on :3004")
