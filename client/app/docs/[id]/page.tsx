@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Save, Upload, Pencil } from "lucide-react";
+import { Save, Upload, Pencil, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDoc } from "@/hooks/useDoc";
 import { useParams } from "next/navigation";
@@ -16,13 +16,14 @@ import * as Y from "yjs";
 import { Toaster, toast } from "sonner";
 import { createMessage, parseMessage } from "@/lib/format";
 import { Docs } from "@/types/doc";
-interface DocumentMeta {
-  id: number;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-  user_id: number;
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
 const EditPage = () => {
   const isFirstEdit = useRef(true);
   const { id } = useParams<{ id: string }>();
@@ -38,6 +39,10 @@ const EditPage = () => {
   const timeoutRef = useRef<number | null>(null);
   const [documentMeta, setDocumentMeta] = useState<Docs | null>(null);
 
+  const [summary, setSummary] = useState<string | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -45,11 +50,13 @@ const EditPage = () => {
   if (!docRef.current) {
     docRef.current = new Y.Doc();
   }
+
   const doc_id = React.useMemo(() => {
     if (!id) return null;
     const parsed = parseInt(id, 10);
     return isNaN(parsed) ? null : parsed;
   }, [id]);
+
   const editor = useEditor({
     extensions: [
       Document,
@@ -60,6 +67,14 @@ const EditPage = () => {
     immediatelyRender: false,
   });
 
+  // 🧠 Handle summarize click
+  const handleSummarize = () => {
+    setShowSummaryModal(true);
+    setLoadingSummary(true);
+    setSummary(null);
+    wsRef.current?.send(createMessage(3, new Uint8Array()));
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const res = await getDocById(doc_id!);
@@ -68,8 +83,6 @@ const EditPage = () => {
         setTitle(res.meta.title);
       }
       if (res?.content && res.content.byteLength > 0 && docRef.current) {
-        console.log(res.content);
-
         Y.applyUpdate(docRef.current, res.content);
       }
     };
@@ -109,7 +122,6 @@ const EditPage = () => {
 
       ws.onmessage = async (event) => {
         const { type, payload } = await parseMessage(event.data);
-
         switch (type) {
           case 0:
             Y.applyUpdate(docRef.current!, payload);
@@ -118,6 +130,18 @@ const EditPage = () => {
             break;
           case 2:
             toast(String(payload));
+            break;
+          case 3:
+            try {
+              // Decode summary (assuming UTF-8 string)
+              const decoded = new TextDecoder().decode(payload);
+              setSummary(decoded);
+            } catch (err) {
+              console.error("Failed to decode summary:", err);
+              setSummary("Failed to load summary.");
+            } finally {
+              setLoadingSummary(false);
+            }
             break;
         }
       };
@@ -143,6 +167,7 @@ const EditPage = () => {
     timeoutRef.current = window.setTimeout(() => {
       AutoSave(doc_id!);
     }, 2000);
+
     const updateHandler = (update: Uint8Array) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(createMessage(0, update));
@@ -195,7 +220,7 @@ const EditPage = () => {
               )}
             </div>
 
-            {/* Metadata Display */}
+            {/* Metadata */}
             {documentMeta && (
               <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-4">
                 <span>ID: {documentMeta.id}</span>
@@ -209,8 +234,15 @@ const EditPage = () => {
               </div>
             )}
           </div>
-
           <div className="flex items-center gap-3 mt-2 sm:mt-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleSummarize}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-90"
+            >
+              <Pencil size={16} /> Summarize
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -230,7 +262,7 @@ const EditPage = () => {
         </div>
       </header>
 
-      {/* Editor Area */}
+      {/* Editor */}
       <section className="flex-1 p-6 overflow-auto">
         <Card className="w-full h-full shadow-md">
           <CardContent className="p-4 h-full">
@@ -241,6 +273,35 @@ const EditPage = () => {
           </CardContent>
         </Card>
       </section>
+
+      {/* Summary Modal */}
+      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI Summary</DialogTitle>
+            <DialogDescription>
+              {loadingSummary
+                ? "Generating your summary..."
+                : "This is the summary generated for your document."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 min-h-[100px] whitespace-pre-wrap text-gray-700 flex items-center justify-center">
+            {loadingSummary ? (
+              <div className="flex items-center gap-2 text-gray-500">
+                <Loader2 className="animate-spin w-4 h-4" />
+                Summarizing...
+              </div>
+            ) : (
+              summary || "No summary available."
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <Button onClick={() => setShowSummaryModal(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };
