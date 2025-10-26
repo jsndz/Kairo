@@ -24,7 +24,6 @@ const (
 type SummarizeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DocId         uint32                 `protobuf:"varint,1,opt,name=doc_id,json=docId,proto3" json:"doc_id,omitempty"`
-	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -62,13 +61,6 @@ func (*SummarizeRequest) Descriptor() ([]byte, []int) {
 func (x *SummarizeRequest) GetDocId() uint32 {
 	if x != nil {
 		return x.DocId
-	}
-	return 0
-}
-
-func (x *SummarizeRequest) GetUserId() uint32 {
-	if x != nil {
-		return x.UserId
 	}
 	return 0
 }
@@ -257,10 +249,9 @@ var File_proto_ai_proto protoreflect.FileDescriptor
 
 const file_proto_ai_proto_rawDesc = "" +
 	"\n" +
-	"\x0eproto/ai.proto\x12\x02ai\"B\n" +
+	"\x0eproto/ai.proto\x12\x02ai\")\n" +
 	"\x10SummarizeRequest\x12\x15\n" +
-	"\x06doc_id\x18\x01 \x01(\rR\x05docId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\rR\x06userId\"A\n" +
+	"\x06doc_id\x18\x01 \x01(\rR\x05docId\"A\n" +
 	"\x11SummarizeResponse\x12\x18\n" +
 	"\asummary\x18\x01 \x01(\tR\asummary\x12\x12\n" +
 	"\x04done\x18\x02 \x01(\bR\x04done\"|\n" +
