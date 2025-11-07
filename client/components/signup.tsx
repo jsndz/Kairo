@@ -2,14 +2,32 @@
 import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  User,
+  Mail,
+  Lock,
+  UserPlus,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function SignupForm() {
   const { signup, isLoading, error, clearError, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [passwordError, setPasswordError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -19,19 +37,36 @@ export default function SignupForm() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
+    const value = e.target.value;
+    const updatedData = {
       ...formData,
-      [e.target.id]: e.target.value,
-    });
+      [e.target.id]: value,
+    };
+    
+    setFormData(updatedData);
+
+    if (e.target.id === "confirmPassword" || e.target.id === "password") {
+      const password = e.target.id === "password" ? value : updatedData.password;
+      const confirmPassword =
+        e.target.id === "confirmPassword" ? value : updatedData.confirmPassword;
+
+      if (password && confirmPassword && password !== confirmPassword) {
+        setPasswordError("Passwords do not match");
+      } else {
+        setPasswordError("");
+      }
+    }
+
     if (error) clearError?.();
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setPasswordError("Passwords do not match");
       return;
     }
+    setPasswordError("");
     signup(formData);
   };
 
@@ -41,103 +76,154 @@ export default function SignupForm() {
     }
   }, [isAuthenticated, router]);
 
+  const passwordsMatch =
+    formData.password &&
+    formData.confirmPassword &&
+    formData.password === formData.confirmPassword;
+
   return (
-    <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
-      <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
-        Welcome to Kairo
-      </h2>
-      <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
-        Sign up to start collaborating in Kairo.
-      </p>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-1 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <UserPlus className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <CardDescription>
+            Sign up to start collaborating in Kairo
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Full Name
+              </Label>
+              <Input
+                id="name"
+                placeholder="Tyler Durden"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                className="h-11"
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-      <form className="my-8" onSubmit={handleSubmit}>
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            placeholder="Tyler"
-            type="text"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-        </LabelInputContainer>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                placeholder="projectmayhem@fc.com"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="h-11"
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="email">Email Address</Label>
-          <Input
-            id="email"
-            placeholder="projectmayhem@fc.com"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </LabelInputContainer>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Password
+              </Label>
+              <Input
+                id="password"
+                placeholder="Create a strong password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="h-11"
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            placeholder="••••••••"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-        </LabelInputContainer>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Confirm Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  placeholder="Confirm your password"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={cn(
+                    "h-11",
+                    passwordsMatch &&
+                      formData.confirmPassword &&
+                      "border-green-500 focus-visible:ring-green-500/50",
+                    passwordError && "border-destructive"
+                  )}
+                  required
+                  disabled={isLoading}
+                />
+                {passwordsMatch && formData.confirmPassword && (
+                  <CheckCircle2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500" />
+                )}
+              </div>
+              {passwordError && (
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {passwordError}
+                </p>
+              )}
+            </div>
 
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input
-            id="confirmPassword"
-            placeholder="••••••••"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
-        </LabelInputContainer>
+            {error && (
+              <div
+                className={cn(
+                  "flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive",
+                  "dark:bg-destructive/20 dark:text-destructive"
+                )}
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
-
-        <button
-          className="group/btn relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-600 font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset]"
-          type="submit"
-          disabled={isLoading}
-        >
-          {isLoading ? "Signing up..." : "Sign Up →"}
-          <BottomGradient />
-        </button>
-
-        <p className="mt-4 text-center text-sm text-neutral-600 dark:text-neutral-400">
-          Already have an account?{" "}
-          <Link href="/signin" className="text-blue-500 hover:underline">
-            Sign In
-          </Link>
-        </p>
-
-        <div className="my-8 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
-      </form>
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isLoading || !!passwordError}
+            >
+              {isLoading ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  Sign Up
+                  <UserPlus className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              href="/signin"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
-
-const BottomGradient = () => (
-  <>
-    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-  </>
-);
-
-const LabelInputContainer = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className={cn("flex w-full flex-col space-y-2", className)}>
-    {children}
-  </div>
-);

@@ -22,8 +22,6 @@ func main(){
 	h := handler.NewAiHandler(doc_client)
 	aiserver := app.NewAiServer(h)
 	grpcServer:= grpc.NewServer()
-
-	
 	aipb.RegisterAIServiceServer(grpcServer,aiserver)
 	reflection.Register(grpcServer)
 	log.Println("AI gRPC server running on :3003")
