@@ -16,6 +16,7 @@ import {
   Shield,
   Workflow,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Page() {
   const [scrollY, setScrollY] = useState(0);
@@ -72,7 +73,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 text-slate-900 overflow-hidden relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden relative">
       {/* Advanced animated background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div
@@ -107,7 +108,7 @@ export default function Page() {
       <div className="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMDMiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-40 pointer-events-none" />
 
       {/* Navigation */}
-      <nav className="relative z-50 backdrop-blur-xl bg-white/70 border-b border-slate-200/50 sticky top-0">
+      <nav className="relative z-50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0">
         <div className="flex items-center justify-between px-8 py-4 max-w-7xl mx-auto">
           <div className="flex items-center space-x-3">
             <img src="/kairo.svg" alt="Kairo" className="h-10 w-auto" />
@@ -115,23 +116,24 @@ export default function Page() {
           <div className="flex items-center space-x-6">
             <Button
               variant="ghost"
-              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800"
             >
               Features
             </Button>
             <Button
               variant="ghost"
-              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800"
             >
               Pricing
             </Button>
             <Button
               variant="ghost"
-              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800"
             >
               Docs
             </Button>
-            <Button className="bg-black text-white hover:bg-slate-900">
+            <ThemeToggle />
+            <Button className="bg-black text-white hover:bg-slate-900 dark:bg-white dark:text-black dark:hover:bg-slate-100">
               Get Started
             </Button>
           </div>
@@ -147,12 +149,12 @@ export default function Page() {
           </div>
 
           <h1 className="text-7xl md:text-8xl font-bold leading-tight tracking-tight">
-            <span className="text-slate-900">Documentation</span>
+            <span className="text-slate-900 dark:text-white">Documentation</span>
             <br />
-            <span className="text-slate-900 italic">Reimagined</span>
+            <span className="text-slate-900 dark:text-white italic">Reimagined</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
             The intelligent workspace where technical teams create, collaborate,
             and ship documentation at the speed of thought.
           </p>
@@ -182,10 +184,10 @@ export default function Page() {
                 className="space-y-2 animate-in fade-in slide-in-from-bottom duration-700"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="text-4xl font-bold text-slate-900">
+                <div className="text-4xl font-bold text-slate-900 dark:text-white">
                   {stat.value}
                 </div>
-                <div className="text-sm text-slate-600">{stat.label}</div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -281,10 +283,10 @@ export default function Page() {
           <div className="inline-flex items-center space-x-2 px-4 py-1 mb-6 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 rounded-full border border-slate-300">
             <span className="text-sm font-medium">Features</span>
           </div>
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-slate-900">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-slate-900 dark:text-white">
             Everything You Need
           </h2>
-          <p className="text-slate-600 text-xl max-w-2xl mx-auto">
+          <p className="text-slate-600 dark:text-slate-300 text-xl max-w-2xl mx-auto">
             Powerful features designed for modern technical teams
           </p>
         </div>
@@ -303,10 +305,10 @@ export default function Page() {
                 <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                   <div className="text-white">{feature.icon}</div>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
                   {feature.title}
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                   {feature.description}
                 </p>
               </CardContent>
@@ -324,13 +326,13 @@ export default function Page() {
               <span className="text-sm font-medium">Workflow</span>
             </div>
             <h2 className="text-5xl font-bold leading-tight">
-              <span className="text-slate-900">Built for the way</span>
+              <span className="text-slate-900 dark:text-white">Built for the way</span>
               <br />
-              <span className="text-slate-900 italic">
+              <span className="text-slate-900 dark:text-white italic">
                 technical teams work
               </span>
             </h2>
-            <p className="text-slate-600 text-lg leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">
               Every feature is designed to enhance your documentation workflow,
               from first draft to final review.
             </p>
@@ -344,7 +346,7 @@ export default function Page() {
                   <div className="w-7 h-7 bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
                     <Check className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                  <span className="text-slate-700 dark:text-slate-300 font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                     {capability}
                   </span>
                 </div>
@@ -361,7 +363,7 @@ export default function Page() {
                     <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shadow-lg">
                       <MessageSquare className="w-5 h-5 text-white" />
                     </div>
-                    <span className="font-bold text-lg text-slate-900">
+                    <span className="font-bold text-lg text-slate-900 dark:text-white">
                       Live Comments
                     </span>
                   </div>
@@ -456,7 +458,7 @@ export default function Page() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-200 mt-32 bg-white/50 backdrop-blur-sm">
+      <footer className="relative z-10 border-t border-slate-200 dark:border-slate-800 mt-32 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-8 py-16">
           <div className="flex flex-col md:flex-row items-center justify-between space-y-6 md:space-y-0">
             <div className="flex items-center space-x-3">
@@ -465,24 +467,24 @@ export default function Page() {
             <div className="flex items-center space-x-8">
               <a
                 href="#"
-                className="text-slate-600 hover:text-slate-900 transition-colors"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
               >
                 Privacy
               </a>
               <a
                 href="#"
-                className="text-slate-600 hover:text-slate-900 transition-colors"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
               >
                 Terms
               </a>
               <a
                 href="#"
-                className="text-slate-600 hover:text-slate-900 transition-colors"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
               >
                 Support
               </a>
             </div>
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
               © 2025 Kairo. All rights reserved.
             </p>
           </div>

@@ -24,6 +24,7 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Dashboard() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -110,6 +111,7 @@ export default function Dashboard() {
                 <Plus className="w-4 h-4" />
                 Create Document
               </Button>
+              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="icon"

@@ -18,7 +18,7 @@ func main(){
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	doc_client,conn := clients.NewDocClient()
-	defer conn.Close()
+	defer conn.Close() 
 	h := handler.NewAiHandler(doc_client)
 	aiserver := app.NewAiServer(h)
 	grpcServer:= grpc.NewServer()
