@@ -15,7 +15,7 @@ import Text from "@tiptap/extension-text";
 import Collaboration from "@tiptap/extension-collaboration";
 import * as Y from "yjs";
 import { Toaster, toast } from "sonner";
-import { createMessage, parseMessage } from "@/lib/format";
+import { createMessage, parseMessage, parseUint8Array } from "@/lib/format";
 import { Docs } from "@/types/doc";
 import {
   Dialog,
@@ -83,6 +83,7 @@ const EditPage = () => {
         setTitle(res.meta.title);
       }
       if (res?.content && res.content.byteLength > 0 && docRef.current) {
+       
         Y.applyUpdate(docRef.current, res.content);
       }
     };
@@ -91,7 +92,7 @@ const EditPage = () => {
 
   const handleSave = async () => {
     if (!doc_id) return;
-    await updateDoc(doc_id, title, currentState);
+    await AutoSave(doc_id);
   };
 
   const handlePublish = () => {};
@@ -108,6 +109,7 @@ const EditPage = () => {
   };
 
   useEffect(() => {
+ 
     if (!wsRef.current) {
       const token = localStorage.getItem("ws_token");
       const ws = new WebSocket(`ws://localhost:3004/ws`);
@@ -159,6 +161,7 @@ const EditPage = () => {
   }, [doc_id]);
 
   useEffect(() => {
+    toast(parseUint8Array())
     if (currentState && currentState.length > 0) {
       Y.applyUpdate(docRef.current!, currentState);
     }

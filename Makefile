@@ -1,70 +1,68 @@
-# Root Makefile
-
-TERM_CMD = gnome-terminal -- bash -c
-# If you're on macOS, comment above and use:
-# TERM_CMD = osascript -e 'tell application "Terminal" to do script'
+TERM_CMD = gnome-terminal --title
 
 BIN_DIR = server/bin
 
-.PHONY: all dev build client gateway auth-service document-service ai-service websocket-service
+.PHONY: all dev build client gateway auth_service doc_service ai_service ws_service stop
 
 all: build
 
-### Build All Go Services ###
-build: $(BIN_DIR)/gateway $(BIN_DIR)/auth-service $(BIN_DIR)/document-service $(BIN_DIR)/ai-service $(BIN_DIR)/websocket-service
-	@echo "✅ All Go services built successfully."
+build: $(BIN_DIR)/gateway $(BIN_DIR)/auth_service $(BIN_DIR)/doc_service $(BIN_DIR)/ai_service $(BIN_DIR)/ws_service
+	@echo "All Go services built."
 
 $(BIN_DIR)/gateway:
-	@echo "Building Gateway..."
 	@mkdir -p $(BIN_DIR)
 	cd server/apps/gateway && go build -o ../../bin/gateway ./cmd/server
 
-$(BIN_DIR)/auth-service:
-	@echo "Building Auth Service..."
+$(BIN_DIR)/auth_service:
 	@mkdir -p $(BIN_DIR)
-	cd server/apps/auth-service && go build -o ../../bin/auth-service ./cmd/server
+	cd server/apps/auth-service && go build -o ../../bin/auth_service ./cmd/server
 
-$(BIN_DIR)/document-service:
-	@echo "Building Document Service..."
+$(BIN_DIR)/doc_service:
 	@mkdir -p $(BIN_DIR)
-	cd server/apps/document-service && go build -o ../../bin/document-service ./cmd/server
+	cd server/apps/document-service && go build -o ../../bin/doc_service ./cmd/server
 
-$(BIN_DIR)/ai-service:
-	@echo "Building AI Service..."
+$(BIN_DIR)/ai_service:
 	@mkdir -p $(BIN_DIR)
-	cd server/apps/ai-service && go build -o ../../bin/ai-service ./cmd/server
+	cd server/apps/ai-service && go build -o ../../bin/ai_service ./cmd/server
 
-$(BIN_DIR)/websocket-service:
-	@echo "Building WebSocket Service..."
+$(BIN_DIR)/ws_service:
 	@mkdir -p $(BIN_DIR)
-	cd server/apps/websocket-service && go build -o ../../bin/websocket-service ./cmd/server
+	cd server/apps/websocket-service && go build -o ../../bin/ws_service ./cmd/server
 
-### Client ###
 client:
-	@echo "Starting client..."
-	$(TERM_CMD) "cd client && npm run dev; exec bash"
+	$(TERM_CMD)="client" -- bash -c "cd client && npm run dev; exec bash"
 
-### Run Services ###
+define run_service
+	@if pgrep -x "$(1)" >/dev/null; then \
+		echo "$(1) is already running."; \
+	else \
+		$(TERM_CMD)="$(1)" -- bash -c "cd $(BIN_DIR) && ./$(1)"; \
+	fi
+endef
+
+
 gateway:
-	@echo "Starting Gateway service..."
-	$(TERM_CMD) "cd $(BIN_DIR) && ./gateway; exec bash"
+	$(call run_service,gateway)
 
-auth-service:
-	@echo "Starting Auth service..."
-	$(TERM_CMD) "cd $(BIN_DIR) && ./auth-service; exec bash"
+auth_service:
+	$(call run_service,auth_service)
 
-document-service:
-	@echo "Starting Document service..."
-	$(TERM_CMD) "cd $(BIN_DIR) && ./document-service; exec bash"
+doc_service:
+	$(call run_service,doc_service)
 
-ai-service:
-	@echo "Starting AI service..."
-	$(TERM_CMD) "cd $(BIN_DIR) && ./ai-service; exec bash"
+ai_service:
+	$(call run_service,ai_service)
 
-websocket-service:
-	@echo "Starting WebSocket service..."
-	$(TERM_CMD) "cd $(BIN_DIR) && ./websocket-service; exec bash"
+ws_service:
+	$(call run_service,ws_service)
 
-### Run all services ###
-dev: build client gateway auth-service document-service ai-service websocket-service
-	@echo "🚀 All services started in separate terminals"
+stop:
+	@pkill -x gateway || true
+	@pkill -x auth_service || true
+	@pkill -x doc_service || true
+	@pkill -x ai_service || true
+	@pkill -x ws_service || true
+	@echo "All services stopped."
+
+dev: build client gateway auth_service doc_service ai_service ws_service
+	@echo "Services started."

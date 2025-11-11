@@ -5,8 +5,7 @@ import (
 	y_crdt "github.com/skyterra/y-crdt"
 )
 
-
-func CombineDeltaState(current_state []byte,deltas *[]model.DocumentUpdate) ( []byte,error )  {
+func CombineDeltaState(current_state []byte, deltas *[]model.DocumentUpdate) ([]byte, error) {
 	var updates [][]byte
 	for _, d := range *deltas {
 		updates = append(updates, d.UpdateState)
@@ -21,5 +20,5 @@ func CombineDeltaState(current_state []byte,deltas *[]model.DocumentUpdate) ( []
 		},
 		false,
 	)
-	return newState,nil
+	return newState, nil
 }
