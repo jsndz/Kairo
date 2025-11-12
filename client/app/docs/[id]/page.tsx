@@ -161,7 +161,6 @@ const EditPage = () => {
   }, [doc_id]);
 
   useEffect(() => {
-    toast(parseUint8Array())
     if (currentState && currentState.length > 0) {
       Y.applyUpdate(docRef.current!, currentState);
     }
