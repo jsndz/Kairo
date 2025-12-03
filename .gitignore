@@ -1,16 +1,14 @@
-# Environment files
 .env
 
-# Node modules or other folders
 node_modules/
 
-# Bin folders anywhere
 **/bin
 
-# Other folders
 todo/
 scripts/
 study/
 server/bin/ai-service
 
 **/.env
+
+**/node_modules/
