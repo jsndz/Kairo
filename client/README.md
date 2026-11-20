@@ -1,35 +1,15 @@
-# React + TypeScript + Vite
+# Kairo editor client
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Run `npm ci` and `npm run dev` from this directory. Use `npm run build` to type-check and create the production bundle.
 
-Currently, two official plugins are available:
+The starter project includes two clips and an audio bed. Import video or audio, then click an asset to append it to its track. Drag clips on the timeline and click or drag the ruler to seek. Drag either edge of a selected clip to trim it. Use the inspector to edit its start time, source offset, duration, or volume. Use **S** to split, **Delete** to remove a clip, and **Ctrl/Cmd+Z** to undo. Press **Space** to play or pause when focus is outside an input or button. For keyboard dragging, focus a clip and use **Space**, the left or right arrow keys, and **Space** again to drop.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/features/editor/model.ts` defines the frame-based project model.
+- `store.ts` manages timeline edits, selection, history, and local project persistence with Zustand.
+- `media.ts` stores imported files in IndexedDB. TanStack Query manages media library reads and imports.
+- `Preview.tsx` renders the timeline with Remotion Player. `Timeline.tsx` uses dnd-kit and `Waveform.tsx` uses WaveSurfer.js for audio visualization.
+- `MediaBin.tsx` and `Inspector.tsx` handle media selection and clip properties. The app uses the existing shadcn/ui button and Tailwind setup.
 
-## React Compiler
+The current project and its imported files are stored in this browser. Download project exports a JSON edit manifest. Video rendering and server collaboration belong to the backend milestones.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Sample footage by Nguyễn Thành Nhơn on Pexels. [Coastal drift](https://www.pexels.com/video/scenic-aerial-view-of-rocky-coastline-35603903/) and [Breaking tide](https://www.pexels.com/video/aerial-view-of-rocky-coastline-and-ocean-waves-35732026/). The sample audio bed is synthesized.
