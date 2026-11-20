@@ -1,72 +1,96 @@
 import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
-import { demoProject, MAX_FRAMES, type Clip, type Media, type Project } from './model'
+import { demoProject } from './demo'
+import { describeAsset, MAX_FRAMES, type Media, type Project } from './model'
+import { applyOperation, type Operation } from './operations'
+import { loadProject, PROJECT_KEY } from './projectStorage'
 
+type HistoryEntry = { operation: Operation; before: Project; after: Project }
 type Editor = {
   project: Project
+  ready: boolean
   selected: string | null
-  past: Project[]
-  future: Project[]
-  commit: (project: Project) => void
+  past: HistoryEntry[]
+  future: HistoryEntry[]
+  error: string | null
+  storageError: boolean
+  initialize: (media: Media[]) => void
+  dispatch: (edit: OmitOperationId) => void
   select: (id: string | null) => void
-  add: (media: Media, at: number) => void
-  update: (id: string, patch: Pick<Partial<Clip>, 'at' | 'offset' | 'length' | 'volume'>, media: Media) => void
+  add: (media: Media) => void
   split: (frame: number) => void
   remove: () => void
   undo: () => void
   redo: () => void
 }
 
-export const useEditor = create<Editor>()(persist((set, get) => ({
+type WithoutId<T> = T extends { id: string } ? Omit<T, 'id'> : never
+type OmitOperationId = WithoutId<Operation>
+
+export const useEditor = create<Editor>((set, get) => ({
   project: demoProject,
+  ready: false,
   selected: 'opening',
   past: [],
   future: [],
-  commit: project => set(state => ({ project, past: [...state.past.slice(-49), state.project], future: [] })),
-  select: selected => set({ selected }),
-  add: (media, at) => {
-    const { project, commit } = get()
-    const id = crypto.randomUUID()
-    const length = Math.min(media.frames, MAX_FRAMES - at)
-    if (length < 1) return
-    commit({ ...project, clips: [...project.clips, { id, mediaId: media.id, at, offset: 0, length, volume: 1 }] })
-    set({ selected: id })
+  error: null,
+  storageError: false,
+  initialize: media => {
+    if (get().ready) return
+    const project = loadProject(demoProject, media)
+    set({ project, ready: true, selected: project.clips[0]?.id ?? null, past: [], future: [], error: null })
   },
-  update: (id, patch, media) => {
-    const { project, commit } = get()
-    const clip = project.clips.find(item => item.id === id)
-    if (!clip || Object.values(patch).some(value => !Number.isFinite(value))) return
-    const next = { ...clip, ...patch }
-    next.at = Math.max(0, Math.min(MAX_FRAMES - 1, Math.round(next.at)))
-    next.offset = Math.max(0, Math.min(media.frames - 1, Math.round(next.offset)))
-    next.length = Math.max(1, Math.min(media.frames - next.offset, MAX_FRAMES - next.at, Math.round(next.length)))
-    next.volume = Math.max(0, Math.min(1, next.volume))
-    if (next.at === clip.at && next.offset === clip.offset && next.length === clip.length && next.volume === clip.volume) return
-    commit({ ...project, clips: project.clips.map(item => item.id === id ? next : item) })
+  dispatch: edit => {
+    const state = get()
+    const operation = { ...edit, id: crypto.randomUUID() }
+    const result = applyOperation(state.project, operation)
+    if (result.error || result.project === state.project) {
+      set({ error: result.error ?? null })
+      return
+    }
+    const selected = operation.type === 'add' ? operation.clip.id : operation.type === 'split' ? operation.rightId
+      : result.project.clips.some(clip => clip.id === state.selected) ? state.selected : null
+    set({
+      project: result.project, selected, error: null, future: [],
+      past: [...state.past.slice(-49), { operation, before: state.project, after: result.project }],
+    })
+  },
+  select: selected => set({ selected, error: null }),
+  add: media => {
+    const { project, selected, dispatch } = get()
+    const selectedTrack = project.clips.find(clip => clip.id === selected)?.trackId
+    const track = project.tracks.find(item => item.id === selectedTrack && item.kind === media.kind)
+      ?? project.tracks.find(item => item.kind === media.kind)
+    if (!track) return
+    const at = project.clips.reduce((end, clip) => clip.trackId === track.id ? Math.max(end, clip.at + clip.length) : end, 0)
+    dispatch({ type: 'add', asset: describeAsset(media), clip: {
+      id: crypto.randomUUID(), trackId: track.id, mediaId: media.id, at, offset: 0,
+      length: Math.min(media.frames, MAX_FRAMES - at), volume: 1,
+    } })
   },
   split: frame => {
-    const { project, selected, commit } = get()
-    const clip = project.clips.find(item => item.id === selected)
-    if (!clip || frame <= clip.at || frame >= clip.at + clip.length) return
-    const length = frame - clip.at
-    const right = { ...clip, id: crypto.randomUUID(), at: frame, offset: clip.offset + length, length: clip.length - length }
-    commit({ ...project, clips: project.clips.flatMap(item => item.id === clip.id ? [{ ...clip, length }, right] : [item]) })
-    set({ selected: right.id })
+    const { selected, dispatch } = get()
+    if (selected) dispatch({ type: 'split', clipId: selected, frame, rightId: crypto.randomUUID() })
   },
   remove: () => {
-    const { project, selected, commit } = get()
-    if (!project.clips.some(clip => clip.id === selected)) return
-    commit({ ...project, clips: project.clips.filter(clip => clip.id !== selected) })
-    set({ selected: null })
+    const { selected, dispatch } = get()
+    if (selected) dispatch({ type: 'delete', clipId: selected })
   },
-  undo: () => set(({ past, future, project }) => past.length ? {
-    project: past[past.length - 1], past: past.slice(0, -1), future: [project, ...future], selected: null,
-  } : {}),
-  redo: () => set(({ past, future, project }) => future.length ? {
-    project: future[0], past: [...past, project], future: future.slice(1), selected: null,
-  } : {}),
-}), {
-  name: 'kairo-project-v1',
-  storage: createJSONStorage(() => localStorage),
-  partialize: ({ project }) => ({ project }),
+  undo: () => set(({ past, future }) => {
+    const entry = past.at(-1)
+    return entry ? { project: entry.before, past: past.slice(0, -1), future: [entry, ...future], selected: null, error: null } : {}
+  }),
+  redo: () => set(({ past, future }) => {
+    const entry = future[0]
+    return entry ? { project: entry.after, past: [...past, entry], future: future.slice(1), selected: null, error: null } : {}
+  }),
 }))
+
+useEditor.subscribe((state, previous) => {
+  if (state.project === previous.project || (!state.past.length && !state.future.length)) return
+  try {
+    localStorage.setItem(PROJECT_KEY, JSON.stringify(state.project))
+    if (state.storageError) useEditor.setState({ storageError: false })
+  } catch {
+    if (!state.storageError) useEditor.setState({ storageError: true })
+  }
+})

@@ -145,3 +145,12 @@
 .trim-handle.left { left: 0; border-right: 1px solid #ffffff38; }
 .trim-handle.right { right: 0; border-left: 1px solid #ffffff38; }
 .trim-handle:hover, .trim-handle:focus-visible { background: #ffffff42; }
+
+.timeline-clip.missing { background: #332829; border-style: dashed; border-color: #d79d8b; }
+.inspector-group [role="alert"] { color: #ffafa8; }
+.number-field select { min-width: 0; }
+
+@media (min-width: 761px) {
+  .preview-stage { container-type: size; }
+  .preview-canvas { width: min(100%, 49rem, calc(100cqh * 16 / 9)); }
+}

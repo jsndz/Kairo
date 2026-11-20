@@ -1,4 +1,5 @@
-import { demoMedia, FPS, type Media } from './model'
+import { FPS, type Asset, type Media } from './model'
+import { demoMedia } from './demo'
 
 export const mediaKey = ['project-media'] as const
 
@@ -23,7 +24,8 @@ export async function loadMedia(): Promise<Media[]> {
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error)
     })
-    return [...demoMedia, ...files.map(({ file, ...media }) => {
+    const storedIds = new Set(files.map(file => file.id))
+    return [...demoMedia.filter(asset => !storedIds.has(asset.id)), ...files.map(({ file, ...media }) => {
       const src = urls.get(media.id) ?? URL.createObjectURL(file)
       urls.set(media.id, src)
       return { ...media, src }
@@ -33,7 +35,7 @@ export async function loadMedia(): Promise<Media[]> {
   }
 }
 
-export async function importMedia(files: File[]) {
+export async function importMedia(files: File[], replacement?: Asset) {
   const imported: StoredMedia[] = []
   const errors: string[] = []
   for (const file of files) {
@@ -51,7 +53,11 @@ export async function importMedia(files: File[]) {
           element.src = src
         })
         if (!Number.isFinite(seconds) || seconds <= 0) throw new Error('Media duration is unavailable.')
-        imported.push({ id: crypto.randomUUID(), name: file.name, kind, frames: Math.max(1, Math.floor(seconds * FPS)), file })
+        const frames = Math.max(1, Math.floor(seconds * FPS))
+        if (replacement && (kind !== replacement.kind || frames < replacement.frames)) {
+          throw new Error('Choose media of the same type and at least the original duration.')
+        }
+        imported.push({ id: replacement?.id ?? crypto.randomUUID(), name: file.name, kind, frames, file })
       } finally {
         element.removeAttribute('src')
         element.load()
@@ -70,6 +76,11 @@ export async function importMedia(files: File[]) {
         transaction.onabort = () => reject(transaction.error ?? new Error('Could not save media.'))
         for (const item of imported) transaction.objectStore('media').put(item)
       })
+      for (const item of imported) {
+        const previous = urls.get(item.id)
+        if (previous) URL.revokeObjectURL(previous)
+        urls.set(item.id, URL.createObjectURL(item.file))
+      }
     } finally {
       database.close()
     }

@@ -4,28 +4,45 @@ import { AbsoluteFill, Html5Audio, Html5Video, Sequence } from 'remotion'
 import { Maximize, Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePlaybackFrame, type Playback } from './playback'
-import { duration, FPS, timecode, type Clip, type Media } from './model'
+import { duration, FPS, timecode, type Clip, type Media, type Track } from './model'
 
-function Composition({ clips, media }: { clips: Clip[]; media: Media[] }) {
+type PreviewInput = {
+  clips: Clip[]
+  tracks: Track[]
+  media: Media[]
+  onMediaError: (src: string) => void
+}
+
+function Composition({ clips, tracks, media, onMediaError }: PreviewInput) {
+  const ordered = useMemo(() => {
+    const assets = new Map(media.map(asset => [asset.id, asset]))
+    const order = new Map(tracks.map((track, index) => [track.id, index]))
+    return [...clips].sort((a, b) => order.get(a.trackId)! - order.get(b.trackId)!)
+      .flatMap(clip => {
+        const asset = assets.get(clip.mediaId)
+        return asset ? [{ clip, asset }] : []
+      })
+  }, [clips, tracks, media])
   return <AbsoluteFill style={{ backgroundColor: '#050607' }}>
-    {clips.map(clip => {
-      const asset = media.find(item => item.id === clip.mediaId)
-      if (!asset) return null
-      return <Sequence key={clip.id} from={clip.at} durationInFrames={clip.length} premountFor={FPS}>
-        {asset.kind === 'video'
-          ? <Html5Video src={asset.src} trimBefore={clip.offset} volume={clip.volume} pauseWhenBuffering style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          : <Html5Audio src={asset.src} trimBefore={clip.offset} volume={clip.volume} pauseWhenBuffering />}
-      </Sequence>
-    })}
+    {ordered.map(({ clip, asset }) => <Sequence key={clip.id} from={clip.at} durationInFrames={clip.length} premountFor={FPS}>
+      {asset.kind === 'video'
+        ? <Html5Video key={asset.src} src={asset.src} trimBefore={clip.offset} volume={clip.volume} pauseWhenBuffering
+          onError={() => onMediaError(asset.src)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        : <Html5Audio key={asset.src} src={asset.src} trimBefore={clip.offset} volume={clip.volume} pauseWhenBuffering onError={() => onMediaError(asset.src)} />}
+    </Sequence>)}
   </AbsoluteFill>
 }
 
-export const Preview = memo(function Preview({ clips, media, player }: { clips: Clip[]; media: Media[]; player: Playback }) {
+function TimeDisplay({ player, frames }: { player: Playback; frames: number }) {
+  const frame = usePlaybackFrame(player)
+  return <div className="time-display"><strong>{timecode(frame)}</strong><span> / {timecode(frames)}</span></div>
+}
+
+export const Preview = memo(function Preview({ clips, tracks, media, player, onMediaError }: PreviewInput & { player: Playback }) {
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
-  const frame = usePlaybackFrame(player)
   const frames = duration(clips)
-  const inputProps = useMemo(() => ({ clips, media }), [clips, media])
+  const inputProps = useMemo(() => ({ clips, tracks, media, onMediaError }), [clips, tracks, media, onMediaError])
 
   useEffect(() => {
     const current = player.current
@@ -61,7 +78,7 @@ export const Preview = memo(function Preview({ clips, media, player }: { clips: 
       </div>
     </div>
     <div className="transport">
-      <div className="time-display"><strong>{timecode(frame)}</strong><span> / {timecode(frames)}</span></div>
+      <TimeDisplay player={player} frames={frames} />
       <div className="transport-controls">
         <Button variant="ghost" size="icon" aria-label="Go to start" title="Go to start" onClick={() => player.current?.seekTo(0)}><SkipBack /></Button>
         <Button className="play-button" size="icon" disabled={!clips.length} aria-label={playing ? 'Pause' : 'Play'} title="Play / pause (Space)" onClick={event => player.current?.toggle(event)}>{playing ? <Pause /> : <Play />}</Button>

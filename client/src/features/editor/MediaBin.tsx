@@ -1,17 +1,17 @@
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { AudioLines, Film, Plus, Search, Upload } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { importMedia, mediaKey } from './media'
 import { timecode, type Media } from './model'
 
-export function MediaBin({ media, add }: { media: Media[]; add: (media: Media) => void }) {
+export const MediaBin = memo(function MediaBin({ media, add }: { media: Media[]; add: (media: Media) => void }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | Media['kind']>('all')
   const mutation = useMutation({
-    mutationFn: importMedia,
+    mutationFn: (files: File[]) => importMedia(files),
     networkMode: 'always',
     onSuccess: () => queryClient.invalidateQueries({ queryKey: mediaKey }),
   })
@@ -47,4 +47,4 @@ export function MediaBin({ media, add }: { media: Media[]; add: (media: Media) =
     </div>
     <div className="media-footer">Click an asset to add it to the timeline.</div>
   </aside>
-}
+})

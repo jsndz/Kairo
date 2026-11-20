@@ -13,3 +13,9 @@ The starter project includes two clips and an audio bed. Import video or audio, 
 The current project and its imported files are stored in this browser. Download project exports a JSON edit manifest. Video rendering and server collaboration belong to the backend milestones.
 
 Sample footage by Nguyễn Thành Nhơn on Pexels. [Coastal drift](https://www.pexels.com/video/scenic-aerial-view-of-rocky-coastline-35603903/) and [Breaking tide](https://www.pexels.com/video/aerial-view-of-rocky-coastline-and-ocean-waves-35732026/). The sample audio bed is synthesized.
+
+Use **Add video track** in the timeline, then change a clip's track in the inspector. Higher video tracks render in front of lower tracks. Clips on the same track may touch at their endpoints. An edit that would overlap another clip is rejected without changing either clip. Older projects with overlaps are assigned additional tracks while preserving their layer order.
+
+Unavailable media remains visible and editable on the timeline. Select the clip and use **Relink media** to restore its source with a file of the same type and at least the original duration. A missing video layer reveals any playable layer below it, and unavailable audio is silent.
+
+The editor submits serializable operations to a pure validator in `operations.ts`. Zustand manages selection, operation history, and local snapshots. The project stores asset metadata separately from browser file URLs. Run `npm test` to check operation validation, replay, and migration.
