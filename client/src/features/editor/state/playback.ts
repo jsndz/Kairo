@@ -14,4 +14,3 @@ export function usePlaybackFrame(player: Playback) {
   }, [player])
   return frame
 }
-

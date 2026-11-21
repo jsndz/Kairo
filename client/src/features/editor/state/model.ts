@@ -1,15 +1,24 @@
 export const FPS = 30
 export const MAX_FRAMES = FPS * 60 * 60
 
-export type Asset = {
-  id: string
+export type Source = {
   name: string
-  kind: 'video' | 'audio'
+  kind: 'video' | 'audio' | 'image'
+  mime: string
+  bytes: number
   frames: number
+  duration: number
+  width?: number
+  height?: number
+}
+export type Asset = Source & {
+  id: string
+  status: 'pending' | 'uploading' | 'completed' | 'failed'
+  attempt?: string
 }
 
 export type Media = Asset & { src: string; poster?: string }
-export type Track = { id: string; kind: Asset['kind'] }
+export type Track = { id: string; kind: 'video' | 'audio' }
 
 export type Clip = {
   trackId: string
@@ -24,8 +33,16 @@ export type Clip = {
 export type Project = { name: string; tracks: Track[]; clips: Clip[]; assets: Record<string, Asset> }
 export const VIDEO_TRACK = 'video-1'
 export const AUDIO_TRACK = 'audio-1'
-export const emptyProject = (name = 'Untitled project'): Project => ({ name, tracks: [{ id: VIDEO_TRACK, kind: 'video' }, { id: AUDIO_TRACK, kind: 'audio' }], clips: [], assets: {} })
-export const describeAsset = ({ id, name, kind, frames }: Asset): Asset => ({ id, name, kind, frames })
+export const emptyProject = (name = 'Untitled project'): Project => ({
+  name,
+  tracks: [
+    { id: VIDEO_TRACK, kind: 'video' },
+    { id: AUDIO_TRACK, kind: 'audio' },
+  ],
+  clips: [],
+  assets: {},
+})
+
 export const duration = (clips: Clip[]) => clips.reduce((end, clip) => Math.max(end, clip.at + clip.length), 1)
 
 export function timecode(frame: number, frames = true) {
@@ -34,3 +51,5 @@ export function timecode(frame: number, frames = true) {
   if (frames) values.push(frame % FPS)
   return values.map(value => String(value).padStart(2, '0')).join(':')
 }
+
+export const trackKind = (kind: Source['kind']): Track['kind'] => (kind === 'audio' ? 'audio' : 'video')

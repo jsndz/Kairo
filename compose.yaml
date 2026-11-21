@@ -1,0 +1,15 @@
+services:
+  minio:
+    build: ./infra/minio
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kairo-dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kairo-dev-secret}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${KAIRO_WEB_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - kairo-media:/data
+volumes:
+  kairo-media:

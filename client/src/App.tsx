@@ -1,36 +1,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import type { PlayerRef } from '@remotion/player'
 import { Aperture, Check, Download, FolderPlus, Redo2, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { MediaBin } from './features/editor/MediaBin'
-import { Preview } from './features/editor/Preview'
-import { Timeline } from './features/editor/Timeline'
-import { Inspector } from './features/editor/Inspector'
-import { loadMedia, mediaKey } from './features/editor/media'
-import { demoMedia } from './features/editor/demo'
-import { useEditor } from './features/editor/store'
+import {
+  MediaBin,
+  Preview,
+  Timeline,
+  Inspector,
+  restoreMedia,
+  useLocalMedia,
+  contentURL,
+  useEditor,
+} from './features/editor'
 import './App.css'
 
 function App() {
   const player = useRef<PlayerRef>(null)
   const project = useEditor(state => state.project)
-  const canUndo = useEditor(state => state.past.length > 0)
-  const canRedo = useEditor(state => state.future.length > 0)
-  const { data: media = demoMedia, isError, isPending } = useQuery({ queryKey: mediaKey, queryFn: loadMedia, staleTime: Infinity, retry: false, networkMode: 'always' })
+  const canUndo = useEditor(state => state.canUndo)
+  const canRedo = useEditor(state => state.canRedo)
+  const files = useLocalMedia(state => state.files)
   const [notice, setNotice] = useState('')
   const ready = useEditor(state => state.ready)
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set())
   const error = useEditor(state => state.error)
-  const storageError = useEditor(state => state.storageError)
   const add = useEditor(state => state.add)
-  const available = useMemo(() => media.filter(asset => !failed.has(asset.src)), [media, failed])
+  const available = useMemo(() => Object.values(project.assets).flatMap(asset => {
+    const local = files[asset.id]?.src
+    const remote = contentURL(asset.id)
+    const src = local && !failed.has(local) ? local : asset.status === 'completed' && !failed.has(remote) ? remote : null
+    return src ? [{ ...asset, src }] : []
+  }), [project.assets, files, failed])
   const markFailed = useCallback((src: string) => setFailed(previous => previous.has(src) ? previous : new Set([...previous, src])), [])
 
-  useEffect(() => {
-    if (isPending || ready) return
-    useEditor.getState().initialize(media)
-  }, [isPending, media, ready])
+  useEffect(() => { void useEditor.getState().initialize() }, [])
+  useEffect(() => { if (ready) void restoreMedia() }, [ready])
 
   useEffect(() => {
     if (!ready) return
@@ -68,7 +72,10 @@ function App() {
     setNotice('Project data downloaded. Media files are stored separately.')
   }
 
-  if (!ready) return <main className="dark editor-shell"><p className="media-empty">Opening local project…</p></main>
+  if (!ready) return <main className="dark editor-shell"><div className="media-empty">
+    <p role={error ? 'alert' : 'status'}>{error ?? 'Opening project…'}</p>
+    {error && <Button variant="outline" onClick={() => void useEditor.getState().initialize()}>Retry</Button>}
+  </div></main>
 
   return <main className="dark editor-shell">
     <header className="editor-header">
@@ -80,14 +87,14 @@ function App() {
           if (name && name !== editor.project.name) editor.dispatch({ type: 'rename', name })
           else event.currentTarget.value = editor.project.name
         }} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }} />
-        <span className="local-status"><Check size={13} /> Local project</span>
+        <span className="local-status"><Check size={13} /> Server project</span>
       </div>
       <div className="header-actions">
         <div className="history-actions">
           <Button variant="ghost" size="icon" aria-label="Undo" title="Undo" disabled={!canUndo} onClick={() => useEditor.getState().undo()}><Undo2 /></Button>
           <Button variant="ghost" size="icon" aria-label="Redo" title="Redo" disabled={!canRedo} onClick={() => useEditor.getState().redo()}><Redo2 /></Button>
         </div>
-        <Button variant="outline" size="icon" aria-label="New empty project" title="New empty project" onClick={() => {
+        <Button variant="outline" size="icon" aria-label="Reset timeline" title="Reset timeline" onClick={() => {
           const editor = useEditor.getState()
           player.current?.pause()
           player.current?.seekTo(0)
@@ -97,13 +104,13 @@ function App() {
       </div>
     </header>
     <div className="workspace">
-      <MediaBin media={available} add={add} />
+      <MediaBin assets={project.assets} media={available} add={add} />
       <Preview clips={project.clips} tracks={project.tracks} media={available} player={player} onMediaError={markFailed} />
       <Inspector media={available} />
     </div>
     <Timeline media={available} player={player} />
-    {(error || isError || storageError) && <div className="editor-toast" role="alert">
-      {error ?? (storageError ? 'Project changes could not be saved to this browser.' : 'Local media storage could not be opened.')}
+    {error && <div className="editor-toast" role="alert">
+      {error}
       {error && <Button variant="ghost" size="sm" onClick={() => useEditor.setState({ error: null })}>Dismiss</Button>}
     </div>}
     {notice && <div className="editor-toast" role="status">{notice} <Button variant="ghost" size="sm" onClick={() => setNotice('')}>Dismiss</Button></div>}

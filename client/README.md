@@ -1,21 +1,7 @@
 # Kairo editor client
 
-Run `npm ci` and `npm run dev` from this directory. Use `npm run build` to type-check and create the production bundle.
+Start Go and MinIO using the [repository setup](../README.md), then run `npm ci` and `npm run dev` here.
 
-The starter project includes two clips and an audio bed. Import video or audio, then click an asset to append it to its track. Drag clips on the timeline and click or drag the ruler to seek. Drag either edge of a selected clip to trim it. Use the inspector to edit its start time, source offset, duration, or volume. Use **S** to split, **Delete** to remove a clip, and **Ctrl/Cmd+Z** to undo. Press **Space** to play or pause when focus is outside an input or button. For keyboard dragging, focus a clip and use **Space**, the left or right arrow keys, and **Space** again to drop.
+Import video, audio, or images. Click an asset to append it to its track. Imported images start at five seconds and use video tracks. Select a clip to change its track, trim it, or adjust its volume. Drag clips to move them and use the ruler to seek. Use **S** to split, **Delete** to remove, **Ctrl/Cmd+Z** to undo, and **Ctrl/Cmd+Shift+Z** to redo. Higher video tracks appear in front. Clip edges may touch on the same track.
 
-- `src/features/editor/model.ts` defines the frame-based project model.
-- `store.ts` manages timeline edits, selection, history, and local project persistence with Zustand.
-- `media.ts` stores imported files in IndexedDB. TanStack Query manages media library reads and imports.
-- `Preview.tsx` renders the timeline with Remotion Player. `Timeline.tsx` uses dnd-kit and `Waveform.tsx` uses WaveSurfer.js for audio visualization.
-- `MediaBin.tsx` and `Inspector.tsx` handle media selection and clip properties. The app uses the existing shadcn/ui button and Tailwind setup.
-
-The current project and its imported files are stored in this browser. Download project exports a JSON edit manifest. Video rendering and server collaboration belong to the backend milestones.
-
-Sample footage by Nguyễn Thành Nhơn on Pexels. [Coastal drift](https://www.pexels.com/video/scenic-aerial-view-of-rocky-coastline-35603903/) and [Breaking tide](https://www.pexels.com/video/aerial-view-of-rocky-coastline-and-ocean-waves-35732026/). The sample audio bed is synthesized.
-
-Use **Add video track** in the timeline, then change a clip's track in the inspector. Higher video tracks render in front of lower tracks. Clips on the same track may touch at their endpoints. An edit that would overlap another clip is rejected without changing either clip. Older projects with overlaps are assigned additional tracks while preserving their layer order.
-
-Unavailable media remains visible and editable on the timeline. Select the clip and use **Relink media** to restore its source with a file of the same type and at least the original duration. A missing video layer reveals any playable layer below it, and unavailable audio is silent.
-
-The editor submits serializable operations to a pure validator in `operations.ts`. Zustand manages selection, operation history, and local snapshots. The project stores asset metadata separately from browser file URLs. Run `npm test` to check operation validation, replay, and migration.
+Files preview from the browser cache while uploads run in the background. Use **Retry upload** after an interrupted transfer. A clip without a playable source remains on the timeline; select it to relink the media. Download project exports a JSON description of the current edit. Video rendering is outside this stage.
