@@ -8,21 +8,27 @@ import (
 
 	domErrors "server/internal/domain/errors"
 	"server/internal/service"
+	"server/internal/ws"
 )
 
 // API provides the HTTP transport layer for Kairo.
 type API struct {
 	service *service.Service
 	log     *slog.Logger
+	hub     *ws.Hub
 }
 
 // New registers API routes, applies middleware, and returns an http.Handler.
 func New(svc *service.Service, logger *slog.Logger) http.Handler {
-	a := &API{service: svc, log: logger}
+	hub := ws.NewHub(svc)
+	a := &API{service: svc, log: logger, hub: hub}
 	mux := http.NewServeMux()
 
 	// Health check
 	mux.HandleFunc("GET /api/health", a.handleHealth)
+
+	// WebSocket real-time sync
+	mux.HandleFunc("GET /api/project/ws", a.hub.ServeWs)
 
 	// Project & Operations
 	mux.HandleFunc("GET /api/project", a.handleGetProject)

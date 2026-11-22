@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-// Source contains metadata of media uploaded or registered by the client.
+// source represnts media uploaded by client
 type Source struct {
 	Name     string  `json:"name"`
 	Kind     string  `json:"kind"` // "video", "audio", or "image"
-	MIME     string  `json:"mime"`
+	MIME     string  `json:"mime"` // format of a file
 	Bytes    int64   `json:"bytes"`
 	Frames   int     `json:"frames"`
 	Duration float64 `json:"duration"` // in seconds

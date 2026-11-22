@@ -27,103 +27,6 @@ func DecodePayload(raw json.RawMessage, dst any, required ...string) error {
 	return decoder.Decode(dst)
 }
 
-// Apply applies an operation record to the timeline and validates the resulting state.
-func Apply(t Timeline, assets map[string]asset.Asset, op record.Record) (Timeline, error) {
-	var p struct {
-		Name          string  `json:"name"`
-		TrackID       string  `json:"trackId"`
-		ClipID        string  `json:"clipId"`
-		Clip          *Clip   `json:"clip"`
-		At            int     `json:"at"`
-		Offset        int     `json:"offset"`
-		Length        int     `json:"length"`
-		Volume        float64 `json:"volume"`
-		Frame         int     `json:"frame"`
-		RightID       string  `json:"rightId"`
-		MediaID       string  `json:"mediaId"`
-		ReplacementID string  `json:"replacementId"`
-	}
-
-	fieldRules := map[string][]string{
-		"reset":     {},
-		"rename":    {"name"},
-		"add-track": {"trackId"},
-		"add":       {"clip"},
-		"move":      {"clipId", "trackId", "at"},
-		"trim":      {"clipId", "at", "offset", "length"},
-		"split":     {"clipId", "frame", "rightId"},
-		"delete":    {"clipId"},
-		"volume":    {"clipId", "volume"},
-		"relink":    {"mediaId", "replacementId"},
-	}
-
-	required, ok := fieldRules[op.Type]
-	if !ok {
-		return t, fmt.Errorf("unknown operation type: %s", op.Type)
-	}
-
-	if err := DecodePayload(op.Payload, &p, required...); err != nil {
-		return t, err
-	}
-
-	next, err := dispatchOperation(t, assets, op.Type, op.Payload, p)
-	if err != nil {
-		return t, err
-	}
-
-	if err := Validate(next, assets); err != nil {
-		return t, err
-	}
-
-	return next, nil
-}
-
-func dispatchOperation(t Timeline, assets map[string]asset.Asset, opType string, raw json.RawMessage, p struct {
-	Name          string  `json:"name"`
-	TrackID       string  `json:"trackId"`
-	ClipID        string  `json:"clipId"`
-	Clip          *Clip   `json:"clip"`
-	At            int     `json:"at"`
-	Offset        int     `json:"offset"`
-	Length        int     `json:"length"`
-	Volume        float64 `json:"volume"`
-	Frame         int     `json:"frame"`
-	RightID       string  `json:"rightId"`
-	MediaID       string  `json:"mediaId"`
-	ReplacementID string  `json:"replacementId"`
-}) (Timeline, error) {
-	switch opType {
-	case "reset":
-		return Empty(), nil
-
-	case "rename":
-		next := t
-		next.Name = strings.TrimSpace(p.Name)
-		return next, nil
-
-	case "add-track":
-		next := t
-		next.Tracks = append(slices.Clone(t.Tracks), Track{ID: p.TrackID, Kind: "video"})
-		return next, nil
-
-	case "add":
-		var wrapper map[string]json.RawMessage
-		_ = json.Unmarshal(raw, &wrapper)
-		if err := DecodePayload(wrapper["clip"], p.Clip, "id", "trackId", "mediaId", "at", "offset", "length", "volume"); err != nil {
-			return t, err
-		}
-		next := t
-		next.Clips = append(slices.Clone(t.Clips), *p.Clip)
-		return next, nil
-
-	case "relink":
-		return applyRelink(t, assets, p.MediaID, p.ReplacementID)
-
-	default:
-		return applyClipEdit(t, opType, p)
-	}
-}
-
 func applyRelink(t Timeline, assets map[string]asset.Asset, mediaID, replacementID string) (Timeline, error) {
 	source, ok := assets[mediaID]
 	target, exists := assets[replacementID]
@@ -141,20 +44,7 @@ func applyRelink(t Timeline, assets map[string]asset.Asset, mediaID, replacement
 	return next, nil
 }
 
-func applyClipEdit(t Timeline, opType string, p struct {
-	Name          string  `json:"name"`
-	TrackID       string  `json:"trackId"`
-	ClipID        string  `json:"clipId"`
-	Clip          *Clip   `json:"clip"`
-	At            int     `json:"at"`
-	Offset        int     `json:"offset"`
-	Length        int     `json:"length"`
-	Volume        float64 `json:"volume"`
-	Frame         int     `json:"frame"`
-	RightID       string  `json:"rightId"`
-	MediaID       string  `json:"mediaId"`
-	ReplacementID string  `json:"replacementId"`
-}) (Timeline, error) {
+func applyClipEdit(t Timeline, opType string, p opParams) (Timeline, error) {
 	i := slices.IndexFunc(t.Clips, func(c Clip) bool { return c.ID == p.ClipID })
 	if i < 0 {
 		return t, fmt.Errorf("clip is not on the timeline")
@@ -193,6 +83,94 @@ func applyClipEdit(t Timeline, opType string, p struct {
 
 		c.Length = left
 		next.Clips = slices.Insert(next.Clips, i+1, right)
+	}
+
+	return next, nil
+}
+
+// opParams holds unmarshaled parameters for any timeline operation.
+type opParams struct {
+	Name          string  `json:"name"`
+	TrackID       string  `json:"trackId"`
+	ClipID        string  `json:"clipId"`
+	Clip          *Clip   `json:"clip"`
+	At            int     `json:"at"`
+	Offset        int     `json:"offset"`
+	Length        int     `json:"length"`
+	Volume        float64 `json:"volume"`
+	Frame         int     `json:"frame"`
+	RightID       string  `json:"rightId"`
+	MediaID       string  `json:"mediaId"`
+	ReplacementID string  `json:"replacementId"`
+}
+
+// requiredFields maps operation types to their mandatory JSON keys.
+var requiredFields = map[string][]string{
+	"reset":     {},
+	"rename":    {"name"},
+	"add-track": {"trackId"},
+	"add":       {"clip"},
+	"move":      {"clipId", "trackId", "at"},
+	"trim":      {"clipId", "at", "offset", "length"},
+	"split":     {"clipId", "frame", "rightId"},
+	"delete":    {"clipId"},
+	"volume":    {"clipId", "volume"},
+	"relink":    {"mediaId", "replacementId"},
+}
+
+func dispatch(t Timeline, assets map[string]asset.Asset, opType string, raw json.RawMessage, p opParams) (Timeline, error) {
+	switch opType {
+	//next here represents the future state
+	case "reset":
+		return Empty(), nil
+
+	case "rename":
+		next := t
+		next.Name = strings.TrimSpace(p.Name)
+		return next, nil
+
+	case "add-track":
+		next := t
+		next.Tracks = append(slices.Clone(t.Tracks), Track{ID: p.TrackID, Kind: "video"})
+		return next, nil
+
+	case "add":
+		var wrapper map[string]json.RawMessage
+		_ = json.Unmarshal(raw, &wrapper)
+		if err := DecodePayload(wrapper["clip"], p.Clip, "id", "trackId", "mediaId", "at", "offset", "length", "volume"); err != nil {
+			return t, err
+		}
+		next := t
+		next.Clips = append(slices.Clone(t.Clips), *p.Clip)
+		return next, nil
+
+	case "relink":
+		return applyRelink(t, assets, p.MediaID, p.ReplacementID)
+
+	default:
+		return applyClipEdit(t, opType, p)
+	}
+}
+
+// Apply applies an operation record to the timeline and validates the resulting state.
+func Apply(t Timeline, assets map[string]asset.Asset, op record.Record) (Timeline, error) {
+	required, ok := requiredFields[op.Type]
+	if !ok {
+		return t, fmt.Errorf("unknown operation type: %s", op.Type)
+	}
+
+	var p opParams
+	if err := DecodePayload(op.Payload, &p, required...); err != nil {
+		return t, err
+	}
+
+	next, err := dispatch(t, assets, op.Type, op.Payload, p)
+	if err != nil {
+		return t, err
+	}
+
+	if err := Validate(next, assets); err != nil {
+		return t, err
 	}
 
 	return next, nil

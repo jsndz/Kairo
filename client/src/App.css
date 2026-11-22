@@ -119,6 +119,12 @@
 .waveform-window > div { position: absolute; bottom: 0; }
 .playhead { position: absolute; inset-block: 0; width: 1px; background: #d2bfff; pointer-events: none; z-index: 2; }
 .playhead::before { position: absolute; top: 0; left: -.22rem; width: .5rem; height: .6rem; background: #d2bfff; content: ''; clip-path: polygon(0 0,100% 0,100% 65%,50% 100%,0 65%); }
+.peer-playhead { position: absolute; inset-block: 0; width: 2px; background: #10b981; pointer-events: none; z-index: 2; }
+.peer-playhead::before { position: absolute; top: 0; left: -.22rem; width: .5rem; height: .6rem; background: #10b981; content: ''; clip-path: polygon(0 0,100% 0,100% 65%,50% 100%,0 65%); }
+.timeline-clip.peer-selected { outline: 2px solid #10b981; outline-offset: 1px; }
+.peer-cursor { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 50; transition: transform 60ms linear; display: flex; flex-direction: column; align-items: flex-start; will-change: transform; }
+.peer-cursor-pointer { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); }
+.peer-cursor-tag { margin-left: 12px; margin-top: -4px; padding: 1px 6px; background-color: #10b981; color: #064e3b; font-size: 10px; font-weight: 700; font-family: var(--font-technical, monospace); border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); letter-spacing: 0.05em; text-transform: uppercase; }
 .timeline-footer { display: flex; justify-content: space-between; align-items: center; gap: .5rem; color: var(--quiet); padding: .5rem .9rem; border-top: 1px solid var(--edge); font-size: .75rem; }
 .editor-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; display: flex; align-items: center; gap: .6rem; background: #282434; padding: .55rem .7rem; border: 1px solid #5f5375; border-radius: .5rem; }
 

@@ -19,6 +19,8 @@ function App() {
   const project = useEditor(state => state.project)
   const canUndo = useEditor(state => state.canUndo)
   const canRedo = useEditor(state => state.canRedo)
+  const connected = useEditor(state => state.connected)
+  const peerPresence = useEditor(state => state.peerPresence)
   const files = useLocalMedia(state => state.files)
   const [notice, setNotice] = useState('')
   const ready = useEditor(state => state.ready)
@@ -87,7 +89,14 @@ function App() {
           if (name && name !== editor.project.name) editor.dispatch({ type: 'rename', name })
           else event.currentTarget.value = editor.project.name
         }} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }} />
-        <span className="local-status"><Check size={13} /> Server project</span>
+        <span className={`local-status ${connected ? 'text-emerald-400' : 'text-amber-400'}`}>
+          <Check size={13} /> {connected ? 'Live Sync' : 'Reconnecting…'}
+        </span>
+        {peerPresence && (
+          <span className="local-status text-sky-400 font-medium" title="Peer connected">
+            ● Peer active
+          </span>
+        )}
       </div>
       <div className="header-actions">
         <div className="history-actions">
@@ -114,6 +123,20 @@ function App() {
       {error && <Button variant="ghost" size="sm" onClick={() => useEditor.setState({ error: null })}>Dismiss</Button>}
     </div>}
     {notice && <div className="editor-toast" role="status">{notice} <Button variant="ghost" size="sm" onClick={() => setNotice('')}>Dismiss</Button></div>}
+    {ready && !connected && (
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50"
+        role="alert"
+      >
+        <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 max-w-sm text-center shadow-xl">
+          <h3 className="font-semibold text-lg text-neutral-100 mb-2">Connection Lost</h3>
+          <p className="text-neutral-400 text-sm mb-4">
+            Reconnecting to the collaboration server… Editing is paused until connection is restored.
+          </p>
+          <div className="inline-block animate-spin w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    )}
   </main>
 }
 

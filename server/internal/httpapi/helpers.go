@@ -23,6 +23,9 @@ func (a *API) attempt(apply func(context.Context, string, string) (asset.Asset, 
 			return
 		}
 		res, err := apply(r.Context(), r.PathValue("id"), body.Attempt)
+		if err == nil && a.hub != nil {
+			a.hub.BroadcastAsset(res)
+		}
 		a.reply(w, r, http.StatusOK, res, err)
 	}
 }

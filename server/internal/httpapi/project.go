@@ -20,5 +20,8 @@ func (a *API) handleCommitOperation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state, err := a.service.Commit(edit)
+	if err == nil && a.hub != nil {
+		a.hub.BroadcastOperation(state.ID, edit, state, "")
+	}
 	a.reply(w, r, http.StatusOK, state, err)
 }

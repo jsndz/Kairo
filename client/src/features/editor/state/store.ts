@@ -1,16 +1,22 @@
 import { create } from 'zustand'
-import { commitEdit, getProject, type ProjectState } from '../api'
+import { commitEdit, getProject, projectSocket, type PeerPresence, type ProjectState } from '../api'
 import { emptyProject, MAX_FRAMES, trackKind, type Asset, type Media } from './model'
 import type { Edit } from './operations'
 
 type Editor = ProjectState & {
   ready: boolean
+  connected: boolean
   selected: string | null
   error: string | null
+  peerPresence: PeerPresence | null
   initialize: () => Promise<void>
   dispatch: (edit: Edit) => Promise<boolean>
   select: (id: string | null) => void
   putAsset: (asset: Asset) => void
+  removeAsset: (assetId: string) => void
+  setConnected: (connected: boolean) => void
+  setPeerPresence: (presence: PeerPresence | null) => void
+  adopt: (state: ProjectState, selection?: string | null) => void
   add: (media: Media) => void
   split: (frame: number) => void
   remove: () => void
@@ -33,8 +39,25 @@ export const errorMessage = (error: unknown) =>
 
 export const useEditor = create<Editor>((set, get) => {
   function adopt(state: ProjectState, selection = get().selected) {
-    set({ ...state, ready: true, selected: state.project.clips.some(clip => clip.id === selection) ? selection : null })
+    if (get().ready && state.revision < get().revision) {
+      return
+    }
+    set({
+      ...state,
+      ready: true,
+      selected: state.project.clips.some(clip => clip.id === selection) ? selection : null,
+    })
   }
+
+  // Register WebSocket handlers
+  projectSocket.setHandlers({
+    onState: state => adopt(state),
+    onPeerPresence: presence => set({ peerPresence: presence }),
+    onAssetUpdated: asset => get().putAsset(asset),
+    onAssetDeleted: assetId => get().removeAsset(assetId),
+    onConnectionChange: connected => set({ connected }),
+    getRevision: () => get().revision,
+  })
 
   return {
     id: '',
@@ -43,9 +66,24 @@ export const useEditor = create<Editor>((set, get) => {
     canUndo: false,
     canRedo: false,
     ready: false,
+    connected: false,
     selected: null,
     error: null,
+    peerPresence: null,
+    adopt,
+    setConnected: connected => set({ connected }),
+    setPeerPresence: peerPresence =>
+      set(state => ({
+        peerPresence:
+          peerPresence === null
+            ? null
+            : {
+                ...state.peerPresence,
+                ...peerPresence,
+              },
+      })),
     initialize: () => {
+      projectSocket.connect()
       if (get().ready) return Promise.resolve()
       if (opening) return opening
       set({ error: null })
@@ -62,11 +100,23 @@ export const useEditor = create<Editor>((set, get) => {
         const id = crypto.randomUUID()
         try {
           if (!get().ready) return false
+          if (!get().connected) {
+            set({ error: 'Disconnected from server. Reconnecting…' })
+            return false
+          }
           if (needsRefresh) {
             adopt(await getProject())
             needsRefresh = false
           }
-          const state = await commitEdit(id, get().revision, edit)
+
+          let state: ProjectState
+          try {
+            state = await projectSocket.sendOp(id, get().revision, edit)
+          } catch {
+            // Fallback to HTTP if WS sendOp encounters an error
+            state = await commitEdit(id, get().revision, edit)
+          }
+
           const selected =
             edit.type === 'add'
               ? edit.clip.id
@@ -95,6 +145,12 @@ export const useEditor = create<Editor>((set, get) => {
       set(({ project }) => ({
         project: { ...project, assets: { ...project.assets, [asset.id]: asset } },
       })),
+    removeAsset: assetId =>
+      set(({ project }) => {
+        const nextAssets = { ...project.assets }
+        delete nextAssets[assetId]
+        return { project: { ...project, assets: nextAssets } }
+      }),
     add: media => {
       const { project, selected, dispatch } = get()
       const kind = trackKind(media.kind)

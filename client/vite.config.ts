@@ -5,7 +5,13 @@ import tailwindcss from '@tailwindcss/vite'
 import path from "path";
 
 // https://vite.dev/config/
-const proxy = { '/api': process.env.KAIRO_API_TARGET ?? 'http://127.0.0.1:8080' }
+const target = process.env.KAIRO_API_TARGET ?? 'http://127.0.0.1:8080'
+const proxy = {
+  '/api': {
+    target,
+    ws: true,
+  },
+}
 
 export default defineConfig({
   server: { proxy, strictPort: true },

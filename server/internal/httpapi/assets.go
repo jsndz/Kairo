@@ -13,12 +13,18 @@ func (a *API) handleRegisterAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := a.service.Register(src)
+	if err == nil && a.hub != nil {
+		a.hub.BroadcastAsset(res)
+	}
 	a.reply(w, r, http.StatusCreated, res, err)
 }
 
 func (a *API) handleBeginUpload(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	res, upload, err := a.service.Begin(r.Context(), id)
+	if err == nil && a.hub != nil {
+		a.hub.BroadcastAsset(res)
+	}
 	a.reply(w, r, http.StatusOK, map[string]any{"asset": res, "upload": upload}, err)
 }
 

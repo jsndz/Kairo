@@ -20,6 +20,9 @@ export const MediaBin = memo(function MediaBin({
   const uploads = useLocalMedia(state => state.uploads)
   const warning = useLocalMedia(state => state.warning)
   const drafts = Object.values(files).filter(entry => entry.id.startsWith('draft-'))
+  const remotePending = Object.values(assets).filter(
+    a => (a.status === 'uploading' || a.status === 'pending') && !media.some(m => m.id === a.id),
+  )
   const matches = (name: string, kind: string) =>
     (filter === 'all' || kind === filter) && name.toLowerCase().includes(search.toLowerCase())
 
@@ -92,6 +95,23 @@ export const MediaBin = memo(function MediaBin({
             </span>
           </div>
         ))}
+        {remotePending
+          .filter(asset => matches(asset.name, asset.kind))
+          .map(asset => (
+            <div
+              className="media-row pending-draft opacity-50 grayscale cursor-not-allowed"
+              key={asset.id}
+              title="Asset is uploading…"
+            >
+              <span className={'media-thumb ' + asset.kind}>
+                <Upload size={19} />
+              </span>
+              <span className="media-details">
+                <strong>{asset.name}</strong>
+                <small>Uploading… (Syncing)</small>
+              </span>
+            </div>
+          ))}
         {media
           .filter(asset => matches(asset.name, asset.kind))
           .map(asset => {
