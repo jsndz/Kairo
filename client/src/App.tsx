@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { PlayerRef } from '@remotion/player'
 import { Aperture, Check, Download, FolderPlus, Redo2, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,8 +11,11 @@ import {
   ConsensusModal,
   restoreMedia,
   useLocalMedia,
-  contentURL,
   useEditor,
+  useAvailableMedia,
+  useNoticeDismiss,
+  useKeyboardShortcuts,
+  exportProjectToJSON,
 } from './features/editor'
 import './App.css'
 
@@ -27,60 +30,19 @@ function App() {
   const notice = useEditor(state => state.notice)
   const setNotice = useEditor(state => state.setNotice)
   const ready = useEditor(state => state.ready)
-  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set())
   const error = useEditor(state => state.error)
   const add = useEditor(state => state.add)
-  const available = useMemo(() => Object.values(project.assets).flatMap(asset => {
-    const local = files[asset.id]?.src
-    const remote = contentURL(asset.id)
-    const src = local && !failed.has(local) ? local : asset.status === 'completed' && !failed.has(remote) ? remote : null
-    return src ? [{ ...asset, src }] : []
-  }), [project.assets, files, failed])
-  const markFailed = useCallback((src: string) => setFailed(previous => previous.has(src) ? previous : new Set([...previous, src])), [])
+
+  const { available, markFailed } = useAvailableMedia(project.assets, files)
 
   useEffect(() => { void useEditor.getState().initialize() }, [])
   useEffect(() => { if (ready) void restoreMedia() }, [ready])
-  useEffect(() => {
-    if (!notice) return
-    const timer = setTimeout(() => {
-      setNotice(null)
-    }, 6000)
-    return () => clearTimeout(timer)
-  }, [notice, setNotice])
 
-  useEffect(() => {
-    if (!ready) return
-    function keydown(event: KeyboardEvent) {
-      const target = event.target
-      if (event.defaultPrevented || (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable=true]'))) return
-      const editor = useEditor.getState()
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault()
-        if (event.shiftKey) editor.redo()
-        else editor.undo()
-      } else if (!event.metaKey && !event.ctrlKey && !event.altKey) {
-        if (event.key === ' ' && !(target instanceof HTMLElement && target.closest('button'))) {
-          event.preventDefault()
-          if (editor.project.clips.length) player.current?.toggle()
-        } else if (event.key.toLowerCase() === 's') editor.split(player.current?.getCurrentFrame() ?? 0)
-        else if (event.key === 'Delete' || event.key === 'Backspace') {
-          event.preventDefault()
-          editor.remove()
-        }
-      }
-    }
-    window.addEventListener('keydown', keydown)
-    return () => window.removeEventListener('keydown', keydown)
-  }, [ready])
+  useNoticeDismiss(notice, setNotice)
+  useKeyboardShortcuts(player, ready)
 
-  function downloadProject() {
-    const blob = new Blob([JSON.stringify({ version: 2, project }, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = project.name + '.kairo.json'
-    anchor.click()
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  function handleDownloadProject() {
+    exportProjectToJSON(project)
     setNotice('Project data downloaded. Media files are stored separately.')
   }
 
@@ -123,7 +85,7 @@ function App() {
             void editor.dispatch({ type: 'reset' })
           }
         }}><FolderPlus /></Button>
-        <Button className="download-button" aria-label="Download project data" onClick={downloadProject}><Download /> <span>Download project</span></Button>
+        <Button className="download-button" aria-label="Download project data" onClick={handleDownloadProject}><Download /> <span>Download project</span></Button>
       </div>
     </header>
     <div className="workspace">
