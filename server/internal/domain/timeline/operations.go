@@ -11,7 +11,7 @@ import (
 	"server/internal/domain/record"
 )
 
-// DecodePayload checks that all required fields are present and unmarshals raw JSON into dst.
+// DecodePayload validates required fields and unmarshals payload.
 func DecodePayload(raw json.RawMessage, dst any, required ...string) error {
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(raw, &fields) != nil || fields == nil || len(fields) != len(required) {
@@ -88,7 +88,7 @@ func applyClipEdit(t Timeline, opType string, p opParams) (Timeline, error) {
 	return next, nil
 }
 
-// opParams holds unmarshaled parameters for any timeline operation.
+// opParams holds unmarshaled operation parameters.
 type opParams struct {
 	Name          string  `json:"name"`
 	TrackID       string  `json:"trackId"`
@@ -104,7 +104,7 @@ type opParams struct {
 	ReplacementID string  `json:"replacementId"`
 }
 
-// requiredFields maps operation types to their mandatory JSON keys.
+// requiredFields maps operation types to mandatory JSON keys.
 var requiredFields = map[string][]string{
 	"reset":     {},
 	"rename":    {"name"},
@@ -120,7 +120,6 @@ var requiredFields = map[string][]string{
 
 func dispatch(t Timeline, assets map[string]asset.Asset, opType string, raw json.RawMessage, p opParams) (Timeline, error) {
 	switch opType {
-	//next here represents the future state
 	case "reset":
 		return Empty(), nil
 
@@ -152,7 +151,7 @@ func dispatch(t Timeline, assets map[string]asset.Asset, opType string, raw json
 	}
 }
 
-// Apply applies an operation record to the timeline and validates the resulting state.
+// Apply applies an operation record to the timeline.
 func Apply(t Timeline, assets map[string]asset.Asset, op record.Record) (Timeline, error) {
 	required, ok := requiredFields[op.Type]
 	if !ok {
@@ -174,4 +173,33 @@ func Apply(t Timeline, assets map[string]asset.Asset, op record.Record) (Timelin
 	}
 
 	return next, nil
+}
+
+// ExtractClipID extracts targeted clip ID from an edit payload.
+func ExtractClipID(e Edit) (string, bool) {
+	switch e.Type {
+	case "move", "trim", "split", "delete", "volume":
+		var p struct {
+			ClipID    string `json:"clipId"`
+			ClipIDAlt string `json:"clip_id"`
+		}
+		if err := json.Unmarshal(e.Payload, &p); err == nil {
+			if p.ClipID != "" {
+				return p.ClipID, true
+			}
+			if p.ClipIDAlt != "" {
+				return p.ClipIDAlt, true
+			}
+		}
+	case "add":
+		var p struct {
+			Clip struct {
+				ID string `json:"id"`
+			} `json:"clip"`
+		}
+		if err := json.Unmarshal(e.Payload, &p); err == nil && p.Clip.ID != "" {
+			return p.Clip.ID, true
+		}
+	}
+	return "", false
 }

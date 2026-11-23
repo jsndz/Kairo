@@ -238,3 +238,44 @@ func TestConcurrentCommitRace(t *testing.T) {
 		t.Fatalf("expected exactly 1 successful commit at revision 0, got %d", successes)
 	}
 }
+
+type mockOwnershipChecker struct {
+	allowed map[string]string // clipID -> allowed clientID
+}
+
+func (m *mockOwnershipChecker) IsAllowed(clientID, clipID string) bool {
+	owner, ok := m.allowed[clipID]
+	if !ok {
+		return true // unassigned
+	}
+	return owner == clientID
+}
+
+func TestCommitAuthor_OwnershipEnforcement(t *testing.T) {
+	s, _, _, _ := setup(t)
+
+	checker := &mockOwnershipChecker{
+		allowed: map[string]string{
+			"clip-a": "alice",
+			"clip-b": "bob",
+		},
+	}
+
+	// 1. Author alice tries to edit bob's clip -> rejected with ErrConflict
+	editBobClip := makeEdit("edit-1", "move", `{"clipId":"clip-b","trackId":"video-1","at":10}`, 0)
+	_, err := s.CommitAuthor(editBobClip, "alice", checker)
+	if !errors.Is(err, domErrors.ErrConflict) {
+		t.Fatalf("expected ErrConflict for editing peer clip, got %v", err)
+	}
+
+	// 2. Global/structural edit (rename) by alice -> allowed regardless of clip ownership
+	renameEdit := makeEdit("edit-2", "rename", `{"name":"Project Alpha"}`, 0)
+	st, err := s.CommitAuthor(renameEdit, "alice", checker)
+	if err != nil {
+		t.Fatalf("expected rename to succeed, got %v", err)
+	}
+	if st.Revision != 1 {
+		t.Fatalf("expected revision 1 after rename, got %d", st.Revision)
+	}
+}
+
