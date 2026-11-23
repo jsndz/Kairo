@@ -14,7 +14,7 @@ import (
 // DecodePayload validates required fields and unmarshals payload.
 func DecodePayload(raw json.RawMessage, dst any, required ...string) error {
 	var fields map[string]json.RawMessage
-	if json.Unmarshal(raw, &fields) != nil || fields == nil || len(fields) != len(required) {
+	if json.Unmarshal(raw, &fields) != nil || fields == nil || len(fields) < len(required) {
 		return fmt.Errorf("invalid operation payload")
 	}
 	for _, k := range required {
@@ -92,6 +92,7 @@ func applyClipEdit(t Timeline, opType string, p opParams) (Timeline, error) {
 type opParams struct {
 	Name          string  `json:"name"`
 	TrackID       string  `json:"trackId"`
+	Kind          string  `json:"kind"`
 	ClipID        string  `json:"clipId"`
 	Clip          *Clip   `json:"clip"`
 	At            int     `json:"at"`
@@ -106,16 +107,17 @@ type opParams struct {
 
 // requiredFields maps operation types to mandatory JSON keys.
 var requiredFields = map[string][]string{
-	"reset":     {},
-	"rename":    {"name"},
-	"add-track": {"trackId"},
-	"add":       {"clip"},
-	"move":      {"clipId", "trackId", "at"},
-	"trim":      {"clipId", "at", "offset", "length"},
-	"split":     {"clipId", "frame", "rightId"},
-	"delete":    {"clipId"},
-	"volume":    {"clipId", "volume"},
-	"relink":    {"mediaId", "replacementId"},
+	"reset":        {},
+	"rename":       {"name"},
+	"add-track":    {"trackId"},
+	"delete-track": {"trackId"},
+	"add":          {"clip"},
+	"move":         {"clipId", "trackId", "at"},
+	"trim":         {"clipId", "at", "offset", "length"},
+	"split":        {"clipId", "frame", "rightId"},
+	"delete":       {"clipId"},
+	"volume":       {"clipId", "volume"},
+	"relink":       {"mediaId", "replacementId"},
 }
 
 func dispatch(t Timeline, assets map[string]asset.Asset, opType string, raw json.RawMessage, p opParams) (Timeline, error) {
@@ -129,8 +131,35 @@ func dispatch(t Timeline, assets map[string]asset.Asset, opType string, raw json
 		return next, nil
 
 	case "add-track":
+		kind := p.Kind
+		if kind != "audio" {
+			kind = "video"
+		}
 		next := t
-		next.Tracks = append(slices.Clone(t.Tracks), Track{ID: p.TrackID, Kind: "video"})
+		next.Tracks = append(slices.Clone(t.Tracks), Track{ID: p.TrackID, Kind: kind})
+		return next, nil
+
+	case "delete-track":
+		if len(t.Tracks) <= 1 {
+			return t, fmt.Errorf("cannot delete the only remaining track")
+		}
+		var found bool
+		for _, tr := range t.Tracks {
+			if tr.ID == p.TrackID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return t, fmt.Errorf("track not found: %s", p.TrackID)
+		}
+		next := t
+		next.Tracks = slices.DeleteFunc(slices.Clone(t.Tracks), func(tr Track) bool {
+			return tr.ID == p.TrackID
+		})
+		next.Clips = slices.DeleteFunc(slices.Clone(t.Clips), func(c Clip) bool {
+			return c.TrackID == p.TrackID
+		})
 		return next, nil
 
 	case "add":

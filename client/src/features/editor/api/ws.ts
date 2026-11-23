@@ -1,5 +1,6 @@
 import type { Asset } from '../state/model'
 import type { Edit } from '../state/operations'
+import type { ConsensusProposal, PermissionRequest } from '../state/ownership'
 import type { ProjectState } from './client'
 
 export type CursorPos = { x: number; y: number }
@@ -12,7 +13,7 @@ export type PeerPresence = {
 }
 
 export type WSInMessage =
-  | { type: 'init'; client_id: string; current_seq: number; state?: ProjectState }
+  | { type: 'init'; client_id: string; current_seq: number; state?: ProjectState; owners?: Record<string, string> }
   | { type: 'peer_joined'; client_id: string }
   | { type: 'peer_left'; client_id: string }
   | { type: 'op_ack'; req_id: string; seq: number; status: 'ok'; state?: ProjectState }
@@ -22,16 +23,35 @@ export type WSInMessage =
   | { type: 'asset_updated'; asset: Asset }
   | { type: 'asset_deleted'; asset_id: string }
   | { type: 'sync_resp'; current_seq: number; ops?: unknown[]; state?: ProjectState }
+  | { type: 'claim_ack'; req_id: string; granted?: string[]; rejected?: string[] }
+  | { type: 'claim_broadcast'; client_id: string; clip_ids?: string[] }
+  | { type: 'release_broadcast'; clip_ids?: string[] }
+  | { type: 'permission_prompt'; req_id: string; from_client_id: string; clip_id: string; timeout_ms: number }
+  | { type: 'permission_resolved'; req_id: string; clip_id: string; approved: boolean; new_owner?: string | null }
+  | { type: 'consensus_prompt'; proposal_id: string; proposer_id: string; op: Edit; description: string; timeout_ms: number }
+  | { type: 'consensus_resolved'; proposal_id: string; approved: boolean; op?: Edit; message?: string }
 
 export type WSOutMessage =
   | { type: 'op_submit'; req_id: string; op: Edit; expected_revision: number }
   | { type: 'presence'; cursor?: CursorPos | null; playhead?: number; selected?: string | null }
   | { type: 'sync_req'; last_seen_seq: number }
+  | { type: 'claim_request'; req_id: string; clip_ids: string[] }
+  | { type: 'release_request'; clip_ids: string[] }
+  | { type: 'permission_request'; req_id: string; clip_id: string }
+  | { type: 'permission_response'; req_id: string; approved: boolean }
+  | { type: 'consensus_propose'; proposal_id: string; op: Edit; description: string }
+  | { type: 'consensus_vote'; proposal_id: string; approved: boolean }
 
 type PendingOp = {
   resolve: (state: ProjectState) => void
   reject: (error: Error) => void
   timer: ReturnType<typeof setTimeout>
+}
+
+type PendingPromise<T> = {
+  resolve: (val: T) => void
+  timer: ReturnType<typeof setTimeout>
+  meta?: unknown
 }
 
 export type SocketHandlers = {
@@ -41,11 +61,21 @@ export type SocketHandlers = {
   onAssetDeleted?: (assetId: string) => void
   onConnectionChange?: (connected: boolean) => void
   getRevision?: () => number
+  onInitClientId?: (clientId: string, owners?: Record<string, string>) => void
+  onClaimBroadcast?: (clientId: string, clipIds: string[]) => void
+  onReleaseBroadcast?: (clipIds: string[]) => void
+  onPermissionPrompt?: (prompt: PermissionRequest) => void
+  onPermissionResolved?: (res: { reqId: string; clipId: string; approved: boolean; newOwner?: string | null }) => void
+  onConsensusPrompt?: (proposal: ConsensusProposal) => void
+  onConsensusResolved?: (res: { proposalId: string; approved: boolean; op?: Edit; message?: string }) => void
 }
 
 class ProjectSocket {
   private ws: WebSocket | null = null
   private pendingOps = new Map<string, PendingOp>()
+  private pendingClaims = new Map<string, PendingPromise<boolean>>()
+  private pendingPermissions = new Map<string, PendingPromise<boolean>>()
+  private pendingConsensus = new Map<string, PendingPromise<boolean>>()
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private presenceTimer: ReturnType<typeof setTimeout> | null = null
   private queuedPresence: { cursor?: CursorPos | null; playhead?: number; selected?: string | null } | null = null
@@ -65,7 +95,8 @@ class ProjectSocket {
 
     this.isExplicitClose = false
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${protocol}//${window.location.host}/api/project/ws`
+    const query = this.clientId ? `?clientId=${encodeURIComponent(this.clientId)}` : ''
+    const url = `${protocol}//${window.location.host}/api/project/ws${query}`
 
     try {
       this.ws = new WebSocket(url)
@@ -153,6 +184,89 @@ class ProjectSocket {
     })
   }
 
+  claimClips(reqId: string, clipIds: string[]): Promise<boolean> {
+    return new Promise(resolve => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return resolve(false)
+      }
+      const timer = setTimeout(() => {
+        this.pendingClaims.delete(reqId)
+        resolve(false)
+      }, 5000)
+      this.pendingClaims.set(reqId, { resolve, timer, meta: clipIds })
+      this.send({
+        type: 'claim_request',
+        req_id: reqId,
+        clip_ids: clipIds,
+      })
+    })
+  }
+
+  releaseClips(clipIds: string[]) {
+    this.send({
+      type: 'release_request',
+      clip_ids: clipIds,
+    })
+  }
+
+  requestPermission(reqId: string, clipId: string): Promise<boolean> {
+    return new Promise(resolve => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return resolve(false)
+      }
+      const timer = setTimeout(() => {
+        this.pendingPermissions.delete(reqId)
+        resolve(false)
+      }, 35000)
+      this.pendingPermissions.set(reqId, { resolve, timer })
+      this.send({
+        type: 'permission_request',
+        req_id: reqId,
+        clip_id: clipId,
+      })
+    })
+  }
+
+  respondPermission(reqId: string, approved: boolean) {
+    this.send({
+      type: 'permission_response',
+      req_id: reqId,
+      approved,
+    })
+  }
+
+  proposeConsensus(proposalId: string, op: Edit, description: string): Promise<boolean> {
+    return new Promise(resolve => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return resolve(false)
+      }
+      const timer = setTimeout(() => {
+        this.pendingConsensus.delete(proposalId)
+        resolve(false)
+      }, 35000)
+      this.pendingConsensus.set(proposalId, { resolve, timer })
+      const { type, ...payload } = op as Record<string, unknown>
+      this.send({
+        type: 'consensus_propose',
+        proposal_id: proposalId,
+        op: {
+          id: proposalId,
+          type,
+          payload,
+        } as unknown as Edit,
+        description,
+      })
+    })
+  }
+
+  voteConsensus(proposalId: string, approved: boolean) {
+    this.send({
+      type: 'consensus_vote',
+      proposal_id: proposalId,
+      approved,
+    })
+  }
+
   sendPresence(presence: { cursor?: CursorPos | null; playhead?: number; selected?: string | null }) {
     this.queuedPresence = { ...this.queuedPresence, ...presence }
     if (this.presenceTimer) return
@@ -163,7 +277,7 @@ class ProjectSocket {
         this.send({ type: 'presence', ...this.queuedPresence })
         this.queuedPresence = null
       }
-    }, 50) // Throttled to ~20Hz
+    }, 50)
   }
 
   private send(msg: WSOutMessage) {
@@ -176,6 +290,7 @@ class ProjectSocket {
     switch (msg.type) {
       case 'init':
         this.clientId = msg.client_id
+        this.handlers.onInitClientId?.(msg.client_id, msg.owners)
         if (msg.state) {
           this.handlers.onState?.(msg.state)
         }
@@ -246,6 +361,83 @@ class ProjectSocket {
           this.handlers.onState?.(msg.state)
         }
         break
+
+      case 'claim_ack': {
+        const pending = this.pendingClaims.get(msg.req_id)
+        if (pending) {
+          clearTimeout(pending.timer)
+          this.pendingClaims.delete(msg.req_id)
+          const requested = (pending.meta as string[]) ?? []
+          const allGranted = requested.every(id => msg.granted?.includes(id))
+          pending.resolve(allGranted)
+        }
+        break
+      }
+
+      case 'claim_broadcast':
+        if (msg.client_id && msg.clip_ids) {
+          this.handlers.onClaimBroadcast?.(msg.client_id, msg.clip_ids)
+        }
+        break
+
+      case 'release_broadcast':
+        if (msg.clip_ids) {
+          this.handlers.onReleaseBroadcast?.(msg.clip_ids)
+        }
+        break
+
+      case 'permission_prompt':
+        this.handlers.onPermissionPrompt?.({
+          reqId: msg.req_id,
+          clipId: msg.clip_id,
+          fromClientId: msg.from_client_id,
+          timeoutMs: msg.timeout_ms || 30000,
+          expiresAt: Date.now() + (msg.timeout_ms || 30000),
+        })
+        break
+
+      case 'permission_resolved': {
+        const pending = this.pendingPermissions.get(msg.req_id)
+        if (pending) {
+          clearTimeout(pending.timer)
+          this.pendingPermissions.delete(msg.req_id)
+          pending.resolve(msg.approved)
+        }
+        this.handlers.onPermissionResolved?.({
+          reqId: msg.req_id,
+          clipId: msg.clip_id,
+          approved: msg.approved,
+          newOwner: msg.new_owner,
+        })
+        break
+      }
+
+      case 'consensus_prompt':
+        this.handlers.onConsensusPrompt?.({
+          proposalId: msg.proposal_id,
+          proposerId: msg.proposer_id,
+          op: msg.op,
+          description: msg.description,
+          timeoutMs: msg.timeout_ms || 30000,
+          expiresAt: Date.now() + (msg.timeout_ms || 30000),
+        })
+        break
+
+      case 'consensus_resolved': {
+        const pending = this.pendingConsensus.get(msg.proposal_id)
+        if (pending) {
+          clearTimeout(pending.timer)
+          this.pendingConsensus.delete(msg.proposal_id)
+          pending.resolve(msg.approved)
+        }
+        this.handlers.onConsensusResolved?.({
+          proposalId: msg.proposal_id,
+          approved: msg.approved,
+          op: msg.op,
+          message: msg.message,
+        })
+        break
+      }
     }
   }
 
@@ -255,6 +447,21 @@ class ProjectSocket {
       pending.reject(error)
     }
     this.pendingOps.clear()
+    for (const [, pending] of this.pendingClaims) {
+      clearTimeout(pending.timer)
+      pending.resolve(false)
+    }
+    this.pendingClaims.clear()
+    for (const [, pending] of this.pendingPermissions) {
+      clearTimeout(pending.timer)
+      pending.resolve(false)
+    }
+    this.pendingPermissions.clear()
+    for (const [, pending] of this.pendingConsensus) {
+      clearTimeout(pending.timer)
+      pending.resolve(false)
+    }
+    this.pendingConsensus.clear()
   }
 
   private scheduleReconnect() {

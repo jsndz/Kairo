@@ -2,27 +2,31 @@ import { create } from 'zustand'
 import { commitEdit, getProject, projectSocket, type PeerPresence, type ProjectState } from '../api'
 import { emptyProject, MAX_FRAMES, trackKind, type Asset, type Media } from './model'
 import type { Edit } from './operations'
+import type { OwnershipSlice } from './ownership'
 
-type Editor = ProjectState & {
-  ready: boolean
-  connected: boolean
-  selected: string | null
-  error: string | null
-  peerPresence: PeerPresence | null
-  initialize: () => Promise<void>
-  dispatch: (edit: Edit) => Promise<boolean>
-  select: (id: string | null) => void
-  putAsset: (asset: Asset) => void
-  removeAsset: (assetId: string) => void
-  setConnected: (connected: boolean) => void
-  setPeerPresence: (presence: PeerPresence | null) => void
-  adopt: (state: ProjectState, selection?: string | null) => void
-  add: (media: Media) => void
-  split: (frame: number) => void
-  remove: () => void
-  undo: () => void
-  redo: () => void
-}
+type Editor = ProjectState &
+  OwnershipSlice & {
+    ready: boolean
+    connected: boolean
+    selected: string | null
+    error: string | null
+    notice: string | null
+    peerPresence: PeerPresence | null
+    initialize: () => Promise<void>
+    dispatch: (edit: Edit) => Promise<boolean>
+    select: (id: string | null) => void
+    putAsset: (asset: Asset) => void
+    removeAsset: (assetId: string) => void
+    setConnected: (connected: boolean) => void
+    setNotice: (notice: string | null) => void
+    setPeerPresence: (presence: PeerPresence | null) => void
+    adopt: (state: ProjectState, selection?: string | null) => void
+    add: (media: Media) => void
+    split: (frame: number) => void
+    remove: () => void
+    undo: () => void
+    redo: () => void
+  }
 
 let queue: Promise<unknown> = Promise.resolve()
 let opening: Promise<void> | undefined
@@ -57,6 +61,63 @@ export const useEditor = create<Editor>((set, get) => {
     onAssetDeleted: assetId => get().removeAsset(assetId),
     onConnectionChange: connected => set({ connected }),
     getRevision: () => get().revision,
+    onInitClientId: (clientId, initialOwners) =>
+      set(s => ({
+        myClientId: clientId,
+        owners: initialOwners ? { ...s.owners, ...initialOwners } : s.owners,
+      })),
+    onClaimBroadcast: (clientId, clipIds) =>
+      set(s => {
+        const next = { ...s.owners }
+        for (const id of clipIds) {
+          next[id] = clientId
+        }
+        return { owners: next }
+      }),
+    onReleaseBroadcast: clipIds =>
+      set(s => {
+        const next = { ...s.owners }
+        for (const id of clipIds) {
+          delete next[id]
+        }
+        return { owners: next }
+      }),
+    onPermissionPrompt: prompt => set({ incomingPermission: prompt }),
+    onPermissionResolved: res =>
+      set(s => {
+        const wasMyRequest = s.outgoingPermission?.reqId === res.reqId
+        const targetClip = s.project.clips.find(c => c.id === res.clipId)
+        const clipName = targetClip ? s.project.assets[targetClip.mediaId]?.name || 'Clip' : 'Clip'
+
+        return {
+          outgoingPermission: wasMyRequest ? null : s.outgoingPermission,
+          incomingPermission: s.incomingPermission?.reqId === res.reqId ? null : s.incomingPermission,
+          notice:
+            wasMyRequest && !res.approved
+              ? `Permission denied: Peer declined your request to edit "${clipName}".`
+              : s.notice,
+        }
+      }),
+    onConsensusPrompt: proposal => set({ activeConsensus: proposal }),
+    onConsensusResolved: res =>
+      set(s => {
+        const wasMyProposal =
+          s.activeConsensus?.proposalId === res.proposalId && s.activeConsensus?.proposerId === s.myClientId
+        const desc = s.activeConsensus?.description || 'make structural changes'
+        let notice = s.notice
+        if (wasMyProposal && !res.approved) {
+          if (res.message) {
+            notice = `Consensus failed for "${desc}": ${res.message}`
+          } else {
+            notice = `Consensus rejected: Peer declined the proposal to ${desc}.`
+          }
+        }
+
+        return {
+          activeConsensus: s.activeConsensus?.proposalId === res.proposalId ? null : s.activeConsensus,
+          notice,
+        }
+      }),
   })
 
   return {
@@ -69,9 +130,19 @@ export const useEditor = create<Editor>((set, get) => {
     connected: false,
     selected: null,
     error: null,
+    notice: null,
     peerPresence: null,
+
+    // Ownership state
+    owners: {},
+    myClientId: null,
+    incomingPermission: null,
+    outgoingPermission: null,
+    activeConsensus: null,
+
     adopt,
     setConnected: connected => set({ connected }),
+    setNotice: notice => set({ notice }),
     setPeerPresence: peerPresence =>
       set(state => ({
         peerPresence:
@@ -97,6 +168,18 @@ export const useEditor = create<Editor>((set, get) => {
     },
     dispatch: edit =>
       serialize(async () => {
+        if (get().peerPresence) {
+          if (edit.type === 'add-track') {
+            const kindLabel = edit.kind === 'audio' ? 'Audio' : 'Video'
+            return get().proposeConsensus(edit, `Add ${kindLabel} Track`)
+          }
+          if (edit.type === 'delete-track') {
+            return get().proposeConsensus(edit, 'Delete Track')
+          }
+          if (edit.type === 'reset') {
+            return get().proposeConsensus(edit, 'Reset Timeline')
+          }
+        }
         const id = crypto.randomUUID()
         try {
           if (!get().ready) return false
@@ -140,7 +223,15 @@ export const useEditor = create<Editor>((set, get) => {
           return false
         }
       }),
-    select: selected => set({ selected, error: null }),
+    select: id => {
+      set({ selected: id, error: null })
+      if (id) {
+        const { owners, myClientId, claimClips } = get()
+        if (!owners[id] && myClientId) {
+          void claimClips([id])
+        }
+      }
+    },
     putAsset: asset =>
       set(({ project }) => ({
         project: { ...project, assets: { ...project.assets, [asset.id]: asset } },
@@ -177,18 +268,95 @@ export const useEditor = create<Editor>((set, get) => {
       })
     },
     split: frame => {
-      const { selected, dispatch } = get()
-      if (selected) void dispatch({ type: 'split', clipId: selected, frame, rightId: crypto.randomUUID() })
+      const { selected, owners, myClientId, dispatch } = get()
+      if (selected) {
+        const owner = owners[selected]
+        if (owner && myClientId && owner !== myClientId) {
+          set({ error: 'Cannot split clip owned by peer. Request permission first.' })
+          return
+        }
+        void dispatch({ type: 'split', clipId: selected, frame, rightId: crypto.randomUUID() })
+      }
     },
     remove: () => {
-      const { selected, dispatch } = get()
-      if (selected) void dispatch({ type: 'delete', clipId: selected })
+      const { selected, owners, myClientId, dispatch } = get()
+      if (selected) {
+        const owner = owners[selected]
+        if (owner && myClientId && owner !== myClientId) {
+          set({ error: 'Cannot delete clip owned by peer. Request permission first.' })
+          return
+        }
+        void dispatch({ type: 'delete', clipId: selected })
+      }
     },
     undo: () => {
       if (get().canUndo) void get().dispatch({ type: 'undo' })
     },
     redo: () => {
       if (get().canRedo) void get().dispatch({ type: 'redo' })
+    },
+
+    // Ownership actions
+    claimClips: async (clipIds: string[]) => {
+      if (!clipIds.length) return true
+      const reqId = crypto.randomUUID()
+      return projectSocket.claimClips(reqId, clipIds)
+    },
+    releaseClips: (clipIds: string[]) => {
+      if (!clipIds.length) return
+      projectSocket.releaseClips(clipIds)
+      set(s => {
+        const next = { ...s.owners }
+        for (const id of clipIds) {
+          delete next[id]
+        }
+        return { owners: next }
+      })
+    },
+    requestPermission: async (clipId: string) => {
+      const reqId = crypto.randomUUID()
+      set({ outgoingPermission: { reqId, clipId } })
+      const approved = await projectSocket.requestPermission(reqId, clipId)
+      set(s => {
+        const targetClip = s.project.clips.find(c => c.id === clipId)
+        const clipName = targetClip ? s.project.assets[targetClip.mediaId]?.name || 'Clip' : 'Clip'
+        return {
+          outgoingPermission: s.outgoingPermission?.reqId === reqId ? null : s.outgoingPermission,
+          notice: !approved ? `Permission denied: Peer declined your request to edit "${clipName}".` : s.notice,
+        }
+      })
+      return approved
+    },
+    respondPermission: (reqId: string, approve: boolean) => {
+      projectSocket.respondPermission(reqId, approve)
+      set(s => ({
+        incomingPermission: s.incomingPermission?.reqId === reqId ? null : s.incomingPermission,
+      }))
+    },
+    proposeConsensus: async (op: Edit, description: string) => {
+      const proposalId = crypto.randomUUID()
+      set({
+        activeConsensus: {
+          proposalId,
+          proposerId: get().myClientId || '',
+          op,
+          description,
+          timeoutMs: 30000,
+          expiresAt: Date.now() + 30000,
+        },
+      })
+      const approved = await projectSocket.proposeConsensus(proposalId, op, description)
+      set(s => ({
+        activeConsensus: s.activeConsensus?.proposalId === proposalId ? null : s.activeConsensus,
+        notice: !approved ? `Consensus rejected: Peer declined the proposal to ${description}.` : s.notice,
+      }))
+      return approved
+    },
+    voteConsensus: (proposalId: string, approve: boolean) => {
+      projectSocket.voteConsensus(proposalId, approve)
+      set(s => ({
+        activeConsensus: s.activeConsensus?.proposalId === proposalId ? null : s.activeConsensus,
+      }))
     },
   }
 })

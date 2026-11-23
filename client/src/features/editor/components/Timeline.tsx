@@ -127,13 +127,33 @@ const TimelineClip = memo(function TimelineClip({
   const selected = useEditor(state => state.selected === clip.id)
   const peerSelected = useEditor(state => state.peerPresence?.selected === clip.id)
   const select = useEditor(state => state.select)
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: clip.id })
+  const owner = useEditor(state => state.owners[clip.id])
+  const myClientId = useEditor(state => state.myClientId)
+  const isPending = useEditor(state => state.outgoingPermission?.clipId === clip.id)
+  const requestPermission = useEditor(state => state.requestPermission)
+
+  const isOwner = Boolean(myClientId && owner === myClientId)
+  const isPeerOwner = Boolean(owner && owner !== myClientId)
+
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: clip.id,
+    disabled: isPeerOwner,
+  })
   const [preview, setPreview] = useState<Clip | null>(null)
   const shown = preview ?? clip
+
+  const ownershipClass = isPending
+    ? 'pending-transfer'
+    : isOwner
+      ? 'owner-local'
+      : isPeerOwner
+        ? 'owner-peer'
+        : 'owner-unassigned'
+
   return (
     <div
       ref={setNodeRef}
-      className={`timeline-clip ${asset.kind} ${selected ? 'selected' : ''} ${peerSelected ? 'peer-selected' : ''} ${source ? '' : 'missing'}`}
+      className={`timeline-clip ${asset.kind} ${selected ? 'selected' : ''} ${peerSelected ? 'peer-selected' : ''} ${ownershipClass} ${source ? '' : 'missing'}`}
       style={{
         left: shown.at * scale,
         width: Math.max(4, shown.length * scale),
@@ -143,8 +163,8 @@ const TimelineClip = memo(function TimelineClip({
     >
       <button
         type="button"
-        {...attributes}
-        {...listeners}
+        {...(isPeerOwner ? {} : attributes)}
+        {...(isPeerOwner ? {} : listeners)}
         aria-pressed={selected}
         className="clip-body"
         title={asset.name + ' · ' + timecode(shown.length)}
@@ -152,7 +172,29 @@ const TimelineClip = memo(function TimelineClip({
       >
         <ClipContent asset={asset} source={source} clip={shown} />
       </button>
+
+      {/* Ownership tag badge */}
+      {isPeerOwner && <span className="clip-ownership-badge peer">Peer</span>}
+      {isOwner && <span className="clip-ownership-badge local">You</span>}
+      {isPending && <span className="clip-ownership-badge pending">Requesting…</span>}
+
+      {/* Peer-owned context action to request edit */}
+      {isPeerOwner && selected && (
+        <button
+          type="button"
+          className="request-edit-btn"
+          onClick={e => {
+            e.stopPropagation()
+            void requestPermission(clip.id)
+          }}
+          disabled={isPending}
+        >
+          {isPending ? 'Requesting…' : 'Request Edit'}
+        </button>
+      )}
+
       {selected &&
+        !isPeerOwner &&
         (['left', 'right'] as const).map(edge => (
           <TrimHandle key={edge} edge={edge} clip={clip} asset={asset} scale={scale} preview={setPreview} />
         ))}
@@ -232,6 +274,7 @@ export const Timeline = memo(function Timeline({
   const selected = useEditor(state => state.selected)
   const select = useEditor(state => state.select)
   const peerPresence = useEditor(state => state.peerPresence)
+  const proposeConsensus = useEditor(state => state.proposeConsensus)
   const currentFrame = usePlaybackFrame(player)
 
   useEffect(() => {
@@ -272,9 +315,32 @@ export const Timeline = memo(function Timeline({
             size="icon"
             title="Add video track"
             aria-label="Add video track"
-            onClick={() => void dispatch({ type: 'add-track', trackId: crypto.randomUUID() })}
+            onClick={() => {
+              const op = { type: 'add-track' as const, trackId: crypto.randomUUID(), kind: 'video' as const }
+              if (peerPresence) {
+                void proposeConsensus(op, 'Add Video Track')
+              } else {
+                void dispatch(op)
+              }
+            }}
           >
             <Plus />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Add audio track"
+            aria-label="Add audio track"
+            onClick={() => {
+              const op = { type: 'add-track' as const, trackId: crypto.randomUUID(), kind: 'audio' as const }
+              if (peerPresence) {
+                void proposeConsensus(op, 'Add Audio Track')
+              } else {
+                void dispatch(op)
+              }
+            }}
+          >
+            <AudioLines size={15} />
           </Button>
           <Button
             variant="ghost"
@@ -335,12 +401,45 @@ export const Timeline = memo(function Timeline({
       <div className="timeline-grid">
         <div className="track-labels">
           <div className="ruler-label technical">TRACKS</div>
-          {project.tracks.map((track, i) => (
-            <div key={track.id}>
-              {track.kind === 'video' ? <Film size={15} /> : <AudioLines size={15} />}
-              <span>{track.kind === 'video' ? `Video ${i + 1}` : `Audio ${i + 1}`}</span>
-            </div>
-          ))}
+          {(() => {
+            let videoIndex = 0
+            let audioIndex = 0
+            const videoTracksCount = project.tracks.filter(t => t.kind === 'video').length
+            const audioTracksCount = project.tracks.filter(t => t.kind === 'audio').length
+
+            return project.tracks.map(track => {
+              const count = track.kind === 'video' ? ++videoIndex : ++audioIndex
+              const canDelete = track.kind === 'video' ? videoTracksCount > 1 : audioTracksCount > 1
+
+              return (
+                <div key={track.id} className="track-label-row">
+                  <div className="track-label-info">
+                    {track.kind === 'video' ? <Film size={15} /> : <AudioLines size={15} />}
+                    <span>{track.kind === 'video' ? `Video ${count}` : `Audio ${count}`}</span>
+                  </div>
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="delete-track-btn"
+                      title={`Delete ${track.kind} track`}
+                      aria-label={`Delete ${track.kind} track`}
+                      onClick={() => {
+                        const op = { type: 'delete-track' as const, trackId: track.id }
+                        if (peerPresence) {
+                          void proposeConsensus(op, `Delete ${track.kind === 'video' ? 'Video' : 'Audio'} Track`)
+                        } else {
+                          void dispatch(op)
+                        }
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </Button>
+                  )}
+                </div>
+              )
+            })
+          })()}
         </div>
         <div className="timeline-scroll">
           <div

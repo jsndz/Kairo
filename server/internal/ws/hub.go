@@ -34,6 +34,11 @@ func NewHub(svc *service.Service) *Hub {
 	}
 }
 
+// Service returns the underlying service instance.
+func (h *Hub) Service() *service.Service {
+	return h.service
+}
+
 // ServeWs upgrades incoming HTTP requests to WebSocket connections and joins the project room.
 func (h *Hub) ServeWs(w http.ResponseWriter, r *http.Request) {
 	projectID := r.URL.Query().Get("projectId")
@@ -41,8 +46,13 @@ func (h *Hub) ServeWs(w http.ResponseWriter, r *http.Request) {
 		projectID = h.service.ProjectID()
 	}
 
+	clientID := r.URL.Query().Get("clientId")
+	if clientID == "" {
+		clientID = r.URL.Query().Get("client_id")
+	}
+
 	room := h.GetOrCreateRoom(projectID)
-	if !room.CanJoin() {
+	if !room.CanJoin(clientID) {
 		http.Error(w, "room is full: maximum 2 users allowed", http.StatusServiceUnavailable)
 		return
 	}
@@ -52,7 +62,7 @@ func (h *Hub) ServeWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := room.Join(conn); err != nil {
+	if _, err := room.JoinWithID(conn, clientID); err != nil {
 		_ = conn.WriteMessage(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, err.Error()))
 		_ = conn.Close()

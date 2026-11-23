@@ -279,3 +279,88 @@ func TestCommitAuthor_OwnershipEnforcement(t *testing.T) {
 	}
 }
 
+func TestAddAudioTrackAndDeleteVideoTrack(t *testing.T) {
+	s, _, _, _ := setup(t)
+
+	// 1. Add audio track
+	addAudio := makeEdit("edit-add-audio", "add-track", `{"trackId":"audio-2","kind":"audio"}`, 0)
+	st, err := s.Commit(addAudio)
+	if err != nil {
+		t.Fatalf("Failed to add audio track: %v", err)
+	}
+	if len(st.Project.Tracks) != 3 {
+		t.Fatalf("Expected 3 tracks after add-audio, got %d: %+v", len(st.Project.Tracks), st.Project.Tracks)
+	}
+
+	// 2. Delete video track
+	delVideo := makeEdit("edit-del-video", "delete-track", `{"trackId":"video-1"}`, 1)
+	st, err = s.Commit(delVideo)
+	if err != nil {
+		t.Fatalf("Failed to delete video track: %v", err)
+	}
+	if len(st.Project.Tracks) != 2 {
+		t.Fatalf("Expected 2 tracks after delete-video, got %d: %+v", len(st.Project.Tracks), st.Project.Tracks)
+	}
+}
+
+func TestRealDataReplay(t *testing.T) {
+	dataPath := "../../data"
+	tmp := t.TempDir()
+
+	metaBytes, err := os.ReadFile(filepath.Join(dataPath, "metadata.json"))
+	if err != nil {
+		t.Skipf("No metadata.json: %v", err)
+	}
+	opsBytes, err := os.ReadFile(filepath.Join(dataPath, "operations.jsonl"))
+	if err != nil {
+		t.Skipf("No operations.jsonl: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "metadata.json"), metaBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "operations.jsonl"), opsBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := catalog.JSONCatalog{Path: filepath.Join(tmp, "metadata.json")}
+	l := jsonl.JSONL{Path: filepath.Join(tmp, "operations.jsonl")}
+	s, err := service.Open(c, l, &mockObjects{}, 1024*1024*100)
+	if err != nil {
+		t.Fatalf("Failed to start service from real data: %v", err)
+	}
+
+	curr := s.Get()
+	t.Logf("Loaded real state: revision=%d, tracks=%d, clips=%d", curr.Revision, len(curr.Project.Tracks), len(curr.Project.Clips))
+	for _, tr := range curr.Project.Tracks {
+		t.Logf("  Track: id=%s, kind=%s", tr.ID, tr.Kind)
+	}
+
+	// Try adding audio track
+	rev := curr.Revision
+	addAudio := timeline.Edit{
+		ID:               "test-add-audio",
+		Type:             "add-track",
+		Payload:          json.RawMessage(`{"trackId":"audio-test","kind":"audio"}`),
+		ExpectedRevision: &rev,
+	}
+	st, err := s.Commit(addAudio)
+	if err != nil {
+		t.Fatalf("Failed to commit add audio track: %v", err)
+	}
+	t.Logf("After add audio: tracks=%d", len(st.Project.Tracks))
+
+	// Try deleting video-1
+	rev = st.Revision
+	delVideo := timeline.Edit{
+		ID:               "test-del-video",
+		Type:             "delete-track",
+		Payload:          json.RawMessage(`{"trackId":"video-1"}`),
+		ExpectedRevision: &rev,
+	}
+	st, err = s.Commit(delVideo)
+	if err != nil {
+		t.Fatalf("Failed to commit delete video-1: %v", err)
+	}
+	t.Logf("After delete video-1: tracks=%d, clips=%d", len(st.Project.Tracks), len(st.Project.Clips))
+}
+

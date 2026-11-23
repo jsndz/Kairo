@@ -28,11 +28,19 @@ type Client struct {
 	isClosed  bool
 }
 
-// NewClient creates a new Client associated with a Room.
+// NewClient creates a new Client with a random ID.
 func NewClient(conn *websocket.Conn, room *Room) *Client {
+	return NewClientWithID(conn, room, rand.Text())
+}
+
+// NewClientWithID creates a new Client with a specific ID.
+func NewClientWithID(conn *websocket.Conn, room *Room, id string) *Client {
+	if id == "" {
+		id = rand.Text()
+	}
 	return &Client{
 		conn: conn,
-		ID:   rand.Text(),
+		ID:   id,
 		Room: room,
 		send: make(chan []byte, 256),
 	}

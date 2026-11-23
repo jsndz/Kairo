@@ -7,7 +7,8 @@ export type Edit =
   | { type: 'split'; clipId: string; frame: number; rightId: string }
   | { type: 'delete'; clipId: string }
   | { type: 'volume'; clipId: string; volume: number }
-  | { type: 'add-track'; trackId: string }
+  | { type: 'add-track'; trackId: string; kind?: 'video' | 'audio' }
+  | { type: 'delete-track'; trackId: string }
   | { type: 'rename'; name: string }
   | { type: 'reset' | 'undo' | 'redo' }
   | { type: 'relink'; mediaId: string; replacementId: string }

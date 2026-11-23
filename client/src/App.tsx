@@ -7,6 +7,8 @@ import {
   Preview,
   Timeline,
   Inspector,
+  PermissionPrompt,
+  ConsensusModal,
   restoreMedia,
   useLocalMedia,
   contentURL,
@@ -22,7 +24,8 @@ function App() {
   const connected = useEditor(state => state.connected)
   const peerPresence = useEditor(state => state.peerPresence)
   const files = useLocalMedia(state => state.files)
-  const [notice, setNotice] = useState('')
+  const notice = useEditor(state => state.notice)
+  const setNotice = useEditor(state => state.setNotice)
   const ready = useEditor(state => state.ready)
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set())
   const error = useEditor(state => state.error)
@@ -37,6 +40,13 @@ function App() {
 
   useEffect(() => { void useEditor.getState().initialize() }, [])
   useEffect(() => { if (ready) void restoreMedia() }, [ready])
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(() => {
+      setNotice(null)
+    }, 6000)
+    return () => clearTimeout(timer)
+  }, [notice, setNotice])
 
   useEffect(() => {
     if (!ready) return
@@ -107,7 +117,11 @@ function App() {
           const editor = useEditor.getState()
           player.current?.pause()
           player.current?.seekTo(0)
-          editor.dispatch({ type: 'reset' })
+          if (peerPresence) {
+            void editor.proposeConsensus({ type: 'reset' }, 'Reset Timeline')
+          } else {
+            void editor.dispatch({ type: 'reset' })
+          }
         }}><FolderPlus /></Button>
         <Button className="download-button" aria-label="Download project data" onClick={downloadProject}><Download /> <span>Download project</span></Button>
       </div>
@@ -118,11 +132,13 @@ function App() {
       <Inspector media={available} />
     </div>
     <Timeline media={available} player={player} />
+    <PermissionPrompt />
+    <ConsensusModal />
     {error && <div className="editor-toast" role="alert">
       {error}
       {error && <Button variant="ghost" size="sm" onClick={() => useEditor.setState({ error: null })}>Dismiss</Button>}
     </div>}
-    {notice && <div className="editor-toast" role="status">{notice} <Button variant="ghost" size="sm" onClick={() => setNotice('')}>Dismiss</Button></div>}
+    {notice && <div className="editor-toast" role="status">{notice} <Button variant="ghost" size="sm" onClick={() => setNotice(null)}>Dismiss</Button></div>}
     {ready && !connected && (
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50"
