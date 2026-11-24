@@ -32,4 +32,6 @@ type ObjectStore interface {
 	Stat(ctx context.Context, key string) (asset.ObjectInfo, error)
 	Promote(ctx context.Context, stage, key, etag string) error
 	ReadURL(ctx context.Context, key string) (string, error)
+	Download(ctx context.Context, key string, targetPath string) error
+	Upload(ctx context.Context, key string, sourcePath string, contentType string) error
 }

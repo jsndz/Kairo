@@ -46,6 +46,8 @@ func (o *mockObjects) Promote(_ context.Context, stage, key, etag string) error 
 func (o *mockObjects) ReadURL(context.Context, string) (string, error) {
 	return "https://minio.invalid/file", nil
 }
+func (o *mockObjects) Download(context.Context, string, string) error { return nil }
+func (o *mockObjects) Upload(context.Context, string, string, string) error { return nil }
 
 func setup(t *testing.T) (*project.Service, catalog.JSONCatalog, jsonl.JSONL, *mockObjects) {
 	t.Helper()

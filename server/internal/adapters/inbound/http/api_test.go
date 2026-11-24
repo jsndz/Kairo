@@ -46,6 +46,12 @@ func (m *mockObjects) Promote(_ context.Context, stage, key, etag string) error 
 func (m *mockObjects) ReadURL(_ context.Context, _ string) (string, error) {
 	return "https://minio.test/read", nil
 }
+func (m *mockObjects) Download(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockObjects) Upload(_ context.Context, _ string, _ string, _ string) error {
+	return nil
+}
 
 func setupAPI(t *testing.T) http.Handler {
 	t.Helper()
@@ -60,7 +66,7 @@ func setupAPI(t *testing.T) http.Handler {
 	}
 
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	return httpadapter.New(svc, nil, logger)
+	return httpadapter.New(svc, nil, nil, logger)
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -228,7 +234,7 @@ func TestHTTPAPI_WithMocks(t *testing.T) {
 	mock.state.Revision = 42
 
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	handler := httpadapter.New(mock, nil, logger)
+	handler := httpadapter.New(mock, nil, nil, logger)
 
 	// Test GET /api/project
 	req := httptest.NewRequest(http.MethodGet, "/api/project", nil)

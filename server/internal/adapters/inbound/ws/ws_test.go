@@ -33,6 +33,8 @@ func (mockObjects) Promote(context.Context, string, string, string) error { retu
 func (mockObjects) ReadURL(context.Context, string) (string, error) {
 	return "https://example.com/get", nil
 }
+func (mockObjects) Download(context.Context, string, string) error { return nil }
+func (mockObjects) Upload(context.Context, string, string, string) error { return nil }
 
 func setupTestHub(t *testing.T) (*ws.Hub, *httptest.Server) {
 	t.Helper()

@@ -1,17 +1,87 @@
 # Kairo
 
-Kairo is a collaborative video editor. The browser previews local media files immediately and uploads originals directly to MinIO. The Go backend enforces timeline validation, manages append-only operation logs, and provides real-time collaboration with clip ownership locks and two-party structural consensus using **Hexagonal Architecture (Ports & Adapters)**.
+Kairo is a real-time collaborative video editor built for pairs. It combines zero-latency local media playback with an append-only Go backend, fine-grained clip locking, and two-party consensus for structural edits.
 
-## Run locally
+---
 
-Install Docker Compose, Go (see `server/go.mod`), and Node.js compatible with the Vite version in `client`.
+## System Architecture
+
+Kairo coordinates two editors using a lightweight hybrid architecture: live coordination happens over WebSockets, media streams directly to/from S3-compatible storage, and the Go server enforces timeline invariants using an append-only log.
+
+```mermaid
+flowchart TD
+    subgraph Clients["Collaborative Clients (Up to 2 Peers)"]
+        U1["Editor 1 (Browser)"]
+        U2["Editor 2 (Browser)"]
+    end
+
+    subgraph Server["Go Backend (kairo-server)"]
+        WS["WebSocket Hub<br/>(Presence, Clip Locks, Consensus)"]
+        REST["REST API<br/>(Asset Registration, Upload Pre-sign)"]
+        Engine["Timeline Engine<br/>(Validation, History & Invariants)"]
+    end
+
+    subgraph Storage["Persistence Layer"]
+        WAL[("Write-Ahead Log<br/>operations.jsonl")]
+        Catalog[("Project Catalog<br/>metadata.json")]
+        MinIO[("MinIO S3<br/>Raw Video & Audio Files")]
+    end
+
+    U1 <-->|"WebSockets (Live edits, locks, presence)"| WS
+    U2 <-->|"WebSockets (Live edits, locks, presence)"| WS
+
+    U1 -->|"REST (Register assets)"| REST
+    U2 -->|"REST (Register assets)"| REST
+
+    U1 -.->|"Direct Upload & Streaming"| MinIO
+    U2 -.->|"Direct Upload & Streaming"| MinIO
+
+    WS --> Engine
+    REST --> Engine
+
+    Engine -->|"Append edits (WAL)"| WAL
+    Engine -->|"Save metadata"| Catalog
+    REST -->|"Verify upload attempts"| MinIO
+```
+
+### How It Works (In Simple Words)
+
+1. **Immediate Playback (Zero Lag)**: When you drop a video into Kairo, it plays instantly from local browser memory (IndexedDB) without waiting for uploads to finish.
+2. **Direct-to-S3 Uploads**: In the background, original files are uploaded directly from the browser to MinIO using pre-signed policies, bypassing the Go server to keep bandwidth light. If your peer needs the file, they stream it from MinIO.
+3. **Live Collaboration**: Both editors connect to the Go server via WebSockets:
+   - **Presence**: You can see your peer's playhead, cursor, and selected clips in real time.
+   - **Clip Locks**: Clicking or dragging a clip acquires an exclusive lock so peers cannot edit the same clip at the same time.
+   - **Consensus**: Dangerous edits (like deleting a track or resetting the timeline) trigger a 30-second voting prompt requiring both users to agree.
+4. **Append-Only History**: The Go engine validates every edit (e.g. ensuring clips never overlap on the same track) and appends it to a write-ahead log (`operations.jsonl`) for reliable undo, redo, and crash recovery.
+
+---
+
+## Codebase Structure
+
+- **Backend (`server/`)**: Built with **Hexagonal Architecture (Ports & Adapters)**. Core domain rules (`domain/`) and application logic (`app/`) are isolated from HTTP/WebSocket transports and MinIO/JSONL storage through clean Go interfaces (`ports/`).
+- **Frontend (`client/src/features/editor/`)**: Built with a **Domain-Hook-View** pattern. Pure timeline math and calculations (`domain/`) have zero React/DOM dependencies, controller hooks (`hooks/`) manage event listeners, and thin TSX components (`components/`) render the Remotion player and UI.
+
+---
+
+## Getting Started
+
+### Prerequisites
+- [Docker Compose](https://docs.docker.com/compose/)
+- [Go](https://go.dev/) (1.22+)
+- [Node.js](https://nodejs.org/) (20+)
+
+### 1. Start MinIO Storage & Backend
 
 ```sh
 docker compose up -d --build minio
-(cd server && go run ./cmd/kairo-server)
+cd server && go run ./cmd/kairo-server
 ```
 
-In another terminal:
+*The server will start on `http://127.0.0.1:8080`.*
+
+### 2. Start Frontend
+
+In a separate terminal:
 
 ```sh
 cd client
@@ -19,140 +89,30 @@ npm ci
 npm run dev
 ```
 
-Open the address Vite prints. The development server and preview proxy `/api` to Go. Compose builds the pinned [upstream MinIO Community release](https://github.com/minio/minio/releases/tag/RELEASE.2025-10-15T17-29-55Z) and keeps originals in its named volume.
+Open the local Vite URL printed in your terminal (proxies `/api` directly to the Go server).
 
-| Setting | Default |
-|---|---|
-| `KAIRO_ADDR` | `127.0.0.1:8080` |
-| `KAIRO_DATA_DIR` | `data`, relative to the server working directory |
-| `KAIRO_MAX_UPLOAD_BYTES` | `262144000` (250 MiB) |
-| `KAIRO_API_TARGET` | `http://127.0.0.1:8080` for the Vite proxy |
-| `MINIO_ENDPOINT` | `127.0.0.1:9000`, host and optional port |
-| `MINIO_PUBLIC_ENDPOINT` | Same as `MINIO_ENDPOINT`, as reached by the browser |
-| `MINIO_TLS` | `false` |
-| `MINIO_BUCKET` | `kairo-media` |
-| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | `kairo-dev` / `kairo-dev-secret` |
-| `KAIRO_WEB_ORIGINS` | Vite development and preview origins on localhost and 127.0.0.1 |
+---
 
-Use matching credentials in Go and Compose. If you change the frontend origin, update Compose CORS. Go binds to loopback by default and has no authentication. Use one server process per data directory.
+## Configuration
 
-## How it stores data
+| Variable | Default | Purpose |
+|---|---|---|
+| `KAIRO_ADDR` | `127.0.0.1:8080` | Server listen address |
+| `KAIRO_DATA_DIR` | `data` | Directory for `metadata.json` and `operations.jsonl` |
+| `MINIO_ENDPOINT` | `127.0.0.1:9000` | MinIO S3 endpoint |
+| `MINIO_BUCKET` | `kairo-media` | Target bucket for uploaded originals |
+| `KAIRO_MAX_UPLOAD_BYTES` | `262144000` (250 MiB) | Maximum allowed upload size per asset |
 
-- `metadata.json` stores the project identity and asset catalog. Go reads it into memory and replaces the file atomically when an asset changes.
-- `operations.jsonl` stores accepted edits, including undo and redo, in sequence. Go flushes each record before returning success and replays the log at startup. Recovery removes an unterminated final record. A malformed complete line or invalid sequence stops startup and preserves the log.
-- MinIO stores originals by stable object key. Uploads use short-lived, size-bound POST policies for staging keys. Go checks the object size and MIME type before a conditional server-side copy to the permanent key. Browser-reported media duration and dimensions are used for timeline metadata. Staging objects have a one-day expiration rule.
-- IndexedDB caches user-selected files for fast local playback and upload retry. Completed assets can play from MinIO when the local file is absent.
-
-Keep both the data directory and the MinIO volume to recover a project with its media.
-
-## Architecture
-
-### Backend: Hexagonal Architecture (Ports & Adapters)
-
-The backend is structured using **Hexagonal Architecture (Ports & Adapters)** to decouple networking transports from domain and collaboration logic:
-
-```
-server/
-├── cmd/
-│   └── kairo-server/
-│       └── main.go                         # Single Composition Root
-│
-├── internal/
-│   ├── domain/                             # Pure business entities & invariants
-│   │   ├── timeline/                       # Timeline, Clip, Track, Operations
-│   │   ├── asset/                          # Asset entity, metadata
-│   │   ├── record/                         # Log record definition
-│   │   ├── history/                        # Undo/redo stack
-│   │   └── errors/                         # Domain sentinel errors
-│   │
-│   ├── ports/                              # Clean Go interface contracts
-│   │   ├── project.go                      # ProjectService, OperationService, State
-│   │   ├── asset.go                        # AssetService, AssetManager
-│   │   ├── collaboration.go                # CollaborationSession, ConsensusCoordinator
-│   │   └── storage.go                      # CatalogRepo, OpLogRepo, ObjectStore
-│   │
-│   ├── app/                                # Application use cases
-│   │   ├── project/                        # Project service (timeline commits, asset lifecycle)
-│   │   └── collaboration/                  # RoomSession, Consensus, Ownership locks
-│   │
-│   └── adapters/                           # Transport & infrastructure adapters
-│       ├── inbound/
-│       │   ├── http/                       # REST HTTP handlers & JSON encoders
-│       │   └── ws/                         # WebSocket transport (gorilla/websocket adapter)
-│       └── outbound/
-│           └── storage/                    # Persistence adapters (catalog, jsonl, minio, fs)
-```
-
-### Frontend: Clean Domain-Hook-View Architecture
-
-The frontend (`client/src/features/editor/`) strictly separates pure TypeScript math and domain logic from React UI markup:
-
-```
-client/src/features/editor/
-├── domain/                                 # Pure TypeScript domain logic (Zero React / DOM dependencies)
-│   ├── timeline/                           # Scale math, tick step calculations, drag transforms, trim deltas
-│   ├── media/                              # Asset resolution & search/kind filters
-│   └── export/                             # Project serialization & file download helpers
-│
-├── hooks/                                  # Headless React controller hooks (No JSX)
-│   ├── useTimelineScale.ts                 # Scale, extent, and ruler ticks
-│   ├── useTimelineDrag.ts                  # @dnd-kit sensors and drag-commit logic
-│   ├── useTrimHandle.ts                    # Pointer-capture edge trimming with rAF throttling
-│   ├── useRulerScrub.ts                    # Playhead seeking and scrubbing
-│   ├── useTimelinePresence.ts              # Playhead & selection sync over WebSockets
-│   ├── useKeyboardShortcuts.ts             # Global hotkeys (Undo, Redo, Play/Pause, Split, Delete)
-│   ├── useAvailableMedia.ts                # Local vs remote media resolution with failover
-│   └── useNoticeDismiss.ts                 # Notification auto-dismiss timer
-│
-├── components/                             # Thin presentational React components (TSX)
-│   ├── Timeline/                           # Ruler, RulerTicks, Playhead, TimelineClip, ClipContent, TrimHandle
-│   ├── Preview/                            # Remotion player view, Composition canvas, TimeDisplay
-│   ├── Inspector/                          # Selected clip properties & numeric inputs
-│   └── MediaBin/                           # Media asset grid, search bar, upload button
-│
-└── state/                                  # Zustand store, optimistic dispatch, wire protocol
-```
-
-## API & Protocols
-
-### REST API
-
-| Method and path | Purpose |
-|---|---|
-| `GET /api/health` | Check the Go server health |
-| `GET /api/project` | Read confirmed timeline, assets, revision, and undo/redo availability |
-| `POST /api/project/operations` | Validate and commit a timeline edit |
-| `POST /api/assets` | Register media metadata and assign an asset ID |
-| `POST /api/assets/{id}/upload` | Start an upload attempt and return signed POST policy credentials |
-| `POST /api/assets/{id}/complete` | Verify and promote the staged upload in MinIO |
-| `POST /api/assets/{id}/fail` | Mark an interrupted upload attempt as failed |
-| `GET /api/assets/{id}/content` | Redirect to a fresh presigned MinIO read URL |
-
-Example edit body:
-
-```json
-{"id":"a-unique-operation-id","expectedRevision":0,"type":"rename","payload":{"name":"My cut"}}
-```
-
-Completion and failure requests use `{"attempt":"<attempt ID>"}`. The browser sends upload fields as multipart form data directly to MinIO, with the file as the last field. Clip edits reference registered asset IDs and use integer frames at 30 FPS.
-
-### WebSocket Real-Time Sync
-
-| Path | Purpose |
-|---|---|
-| `GET /api/project/ws` | Upgrade connection for real-time collaboration (`?clientId=<id>&projectId=<id>`) |
-
-The WebSocket interface coordinates up to 2 simultaneous users per project room:
-- **Presence**: Exchanges live cursor, playhead, and selection states.
-- **Clip Ownership Locks**: Fine-grained claim, release, and interactive transfer requests on timeline clips.
-- **Two-Party Consensus**: Requires explicit proposal and mutual approval for structural edits (`add-track`, `delete-track`, `reset`) with 30-second timers.
-- **Grace Period Reclamation**: 15-second disconnect grace window before reclaiming clips held by disconnected users.
+---
 
 ## Testing
 
-Run tests across all packages with race detection:
+Run tests across both backend and frontend:
 
 ```sh
+# Backend tests with race detector
 (cd server && go test -race -v ./...)
+
+# Frontend domain tests & production build
 (cd client && npm test && npm run build)
 ```

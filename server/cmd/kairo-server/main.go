@@ -15,10 +15,13 @@ import (
 
 	httpadapter "server/internal/adapters/inbound/http"
 	"server/internal/adapters/inbound/ws"
+	"server/internal/adapters/outbound/ffmpeg"
 	"server/internal/adapters/outbound/storage/catalog"
+	exportstorage "server/internal/adapters/outbound/storage/export"
 	"server/internal/adapters/outbound/storage/fs"
 	"server/internal/adapters/outbound/storage/jsonl"
 	"server/internal/adapters/outbound/storage/minio"
+	appexport "server/internal/app/export"
 	"server/internal/app/project"
 )
 
@@ -81,9 +84,36 @@ func run(logger *slog.Logger) error {
 
 	hub := ws.NewHub(svc)
 
+	exportDir := filepath.Join(data, "exports")
+	exportRepo, err := exportstorage.NewFSRepository(exportDir)
+	if err != nil {
+		return fmt.Errorf("initialize export storage: %w", err)
+	}
+
+	ffprobeProber := ffmpeg.NewProber(env("FFPROBE_PATH", "ffprobe"))
+	ffmpegRunner := ffmpeg.NewRunner(env("FFMPEG_PATH", "ffmpeg"), ffprobeProber, store)
+
+	exportSvc, err := appexport.New(appexport.Config{
+		ProjectReader:  svc,
+		Repo:           exportRepo,
+		Renderer:       ffmpegRunner,
+		Prober:         ffprobeProber,
+		ObjectStore:    store,
+		ScratchBaseDir: filepath.Join(exportDir, "scratch"),
+		Logger:         logger,
+	})
+	if err != nil {
+		return fmt.Errorf("initialize export service: %w", err)
+	}
+	defer exportSvc.Stop()
+
+	if err := exportSvc.Recover(); err != nil {
+		logger.Warn("export crash recovery failed", "error", err)
+	}
+
 	server := &http.Server{
 		Addr:              env("KAIRO_ADDR", "127.0.0.1:8080"),
-		Handler:           httpadapter.New(svc, hub, logger),
+		Handler:           httpadapter.New(svc, exportSvc, hub, logger),
 		ReadTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      35 * time.Second,

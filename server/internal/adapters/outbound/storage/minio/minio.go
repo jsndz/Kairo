@@ -123,3 +123,17 @@ func (m *MinIO) ReadURL(ctx context.Context, key string) (string, error) {
 	}
 	return u.String(), nil
 }
+
+// Download saves a MinIO object directly to a local target file path.
+func (m *MinIO) Download(ctx context.Context, key string, targetPath string) error {
+	return m.internal.FGetObject(ctx, m.bucket, key, targetPath, miniogo.GetObjectOptions{})
+}
+
+// Upload stores a local file at sourcePath to the specified MinIO key.
+func (m *MinIO) Upload(ctx context.Context, key string, sourcePath string, contentType string) error {
+	_, err := m.internal.FPutObject(ctx, m.bucket, key, sourcePath, miniogo.PutObjectOptions{
+		ContentType: contentType,
+	})
+	return err
+}
+

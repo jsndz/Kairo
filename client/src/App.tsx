@@ -17,6 +17,7 @@ import {
   useKeyboardShortcuts,
   exportProjectToJSON,
 } from './features/editor'
+import { ExportModal, ExportTriggerButton } from './features/export'
 import './App.css'
 
 function App() {
@@ -32,8 +33,12 @@ function App() {
   const ready = useEditor(state => state.ready)
   const error = useEditor(state => state.error)
   const add = useEditor(state => state.add)
+  const revision = useEditor(state => state.revision)
 
   const { available, markFailed } = useAvailableMedia(project.assets, files)
+  const hasIncompleteAssets = project.clips.some(
+    c => project.assets[c.mediaId]?.status !== 'completed'
+  )
 
   useEffect(() => { void useEditor.getState().initialize() }, [])
   useEffect(() => { if (ready) void restoreMedia() }, [ready])
@@ -86,6 +91,7 @@ function App() {
           }
         }}><FolderPlus /></Button>
         <Button className="download-button" aria-label="Download project data" onClick={handleDownloadProject}><Download /> <span>Download project</span></Button>
+        <ExportTriggerButton />
       </div>
     </header>
     <div className="workspace">
@@ -96,6 +102,11 @@ function App() {
     <Timeline media={available} player={player} />
     <PermissionPrompt />
     <ConsensusModal />
+    <ExportModal
+      revision={revision}
+      clipsCount={project.clips.length}
+      hasIncompleteAssets={hasIncompleteAssets}
+    />
     {error && <div className="editor-toast" role="alert">
       {error}
       {error && <Button variant="ghost" size="sm" onClick={() => useEditor.setState({ error: null })}>Dismiss</Button>}

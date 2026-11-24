@@ -27,17 +27,18 @@ type Service interface {
 // API provides the HTTP transport layer for Kairo.
 type API struct {
 	service     Service
+	exportSvc   ports.ExportService
 	log         *slog.Logger
 	broadcaster Broadcaster
 }
 
 // New registers API routes, applies middleware, and returns an nethttp.Handler.
-func New(svc Service, wsHandler nethttp.Handler, logger *slog.Logger) nethttp.Handler {
+func New(svc Service, exportSvc ports.ExportService, wsHandler nethttp.Handler, logger *slog.Logger) nethttp.Handler {
 	var broadcaster Broadcaster
 	if b, ok := wsHandler.(Broadcaster); ok {
 		broadcaster = b
 	}
-	a := &API{service: svc, log: logger, broadcaster: broadcaster}
+	a := &API{service: svc, exportSvc: exportSvc, log: logger, broadcaster: broadcaster}
 	mux := nethttp.NewServeMux()
 
 	// Health check
@@ -58,6 +59,15 @@ func New(svc Service, wsHandler nethttp.Handler, logger *slog.Logger) nethttp.Ha
 	mux.HandleFunc("POST /api/assets/{id}/complete", a.handleCompleteUpload)
 	mux.HandleFunc("POST /api/assets/{id}/fail", a.handleFailUpload)
 	mux.HandleFunc("GET /api/assets/{id}/content", a.handleAssetContent)
+
+	// Export lifecycle
+	if exportSvc != nil {
+		mux.HandleFunc("POST /api/exports", a.handleCreateExport)
+		mux.HandleFunc("GET /api/exports/{id}", a.handleGetExport)
+		mux.HandleFunc("POST /api/exports/{id}/cancel", a.handleCancelExport)
+		mux.HandleFunc("POST /api/exports/{id}/retry", a.handleRetryExport)
+		mux.HandleFunc("GET /api/exports/{id}/download", a.handleDownloadExport)
+	}
 
 	return a.withMiddleware(mux)
 }
