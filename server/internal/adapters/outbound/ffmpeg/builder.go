@@ -202,10 +202,10 @@ func buildFilterComplex(st1 Stage1State, assets map[string]asset.Asset, assetIdx
 	}
 
 	// Stage 7: Audio Mixing
-	// Base silence source of exact timeline duration
+	// Base silence source of exact timeline duration (stereo)
 	silenceLabel := "[base_silence]"
 	filterParts = append(filterParts, fmt.Sprintf(
-		"aevalsrc=0:d=%.4f:s=48000%s",
+		"aevalsrc=0:d=%.4f:s=48000:c=stereo%s",
 		st1.DurationSeconds, silenceLabel,
 	))
 
@@ -220,8 +220,8 @@ func buildFilterComplex(st1 Stage1State, assets map[string]asset.Asset, assetIdx
 
 		audioClipLabel := fmt.Sprintf("[aclip_%d]", i)
 		filterParts = append(filterParts, fmt.Sprintf(
-			"[%d:a]atrim=start=%.4f:duration=%.4f,asetpts=PTS-STARTPTS,adelay=%d|%d,volume=%.4f%s",
-			idx, offsetSec, durSec, atMs, atMs, clip.Volume, audioClipLabel,
+			"[%d:a]atrim=start=%.4f:duration=%.4f,asetpts=PTS-STARTPTS,adelay=delays=%d:all=1,volume=%.4f%s",
+			idx, offsetSec, durSec, atMs, clip.Volume, audioClipLabel,
 		))
 		audioLabels = append(audioLabels, audioClipLabel)
 	}
@@ -232,12 +232,12 @@ func buildFilterComplex(st1 Stage1State, assets map[string]asset.Asset, assetIdx
 		audioOut = "[outa]"
 		// Replace base silence label
 		lastIdx := len(filterParts) - 1
-		filterParts[lastIdx] = fmt.Sprintf("aevalsrc=0:d=%.4f:s=48000[outa]", st1.DurationSeconds)
+		filterParts[lastIdx] = fmt.Sprintf("aevalsrc=0:d=%.4f:s=48000:c=stereo[outa]", st1.DurationSeconds)
 	} else {
-		// Mix all active audio with silence
+		// Mix all active audio with silence and compensate amix scale
 		filterParts = append(filterParts, fmt.Sprintf(
-			"%samix=inputs=%d:duration=first:dropout_transition=0:normalize=0%s",
-			strings.Join(audioLabels, ""), len(audioLabels), audioOut,
+			"%samix=inputs=%d:duration=first:dropout_transition=0:normalize=0,volume=%d%s",
+			strings.Join(audioLabels, ""), len(audioLabels), len(audioLabels), audioOut,
 		))
 	}
 

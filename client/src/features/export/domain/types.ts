@@ -4,6 +4,8 @@ export type Quality = 'standard' | 'high'
 export type Format = 'mp4'
 export type Method = 'server' | 'local'
 
+export type AccelerationMode = 'checking' | 'hardware' | 'software' | 'unsupported'
+
 export type ExportSettings = {
   format: Format
   filename: string
@@ -28,6 +30,9 @@ export type ExportJob = {
   createdAt: string
   startedAt?: string
   endedAt?: string
+  blobUrl?: string
+  accelerationMode?: AccelerationMode
+  stageMessage?: string
 }
 
 export type CreateExportRequest = {
@@ -43,4 +48,11 @@ export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
   frameRate: 30,
   quality: 'standard',
   method: 'server',
+}
+
+export type ClientExportProgress = {
+  frame: number
+  totalFrames: number
+  percent: number
+  stage: 'preparing' | 'audio' | 'rendering' | 'muxing' | 'completed'
 }

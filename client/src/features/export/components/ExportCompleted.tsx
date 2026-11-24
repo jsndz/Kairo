@@ -10,7 +10,9 @@ type Props = {
 
 export function ExportCompleted({ job }: Props) {
   const dismissJob = useExportStore(state => state.dismissJob)
-  const downloadURL = exportApi.getDownloadURL(job.id)
+  const isClient = job.id.startsWith('client_')
+  const downloadURL = job.blobUrl || exportApi.getDownloadURL(job.id)
+  const downloadFilename = job.outputKey || 'export.mp4'
 
   return (
     <div className="flex flex-col items-center text-center py-4 gap-6">
@@ -21,9 +23,13 @@ export function ExportCompleted({ job }: Props) {
 
       {/* Title & Description */}
       <div className="flex flex-col gap-1.5 max-w-sm">
-        <h3 className="text-base font-semibold text-neutral-100">Export Complete!</h3>
+        <h3 className="text-base font-semibold text-neutral-100">
+          {isClient ? 'Local Export Complete!' : 'Cloud Export Complete!'}
+        </h3>
         <p className="text-xs text-neutral-400 leading-relaxed">
-          Your video has been rendered and verified. It is ready for download.
+          {isClient
+            ? 'Your video has been rendered and muxed into MP4 format locally. It is ready for download.'
+            : 'Your video has been rendered and verified by the cloud worker. It is ready for download.'}
         </p>
       </div>
 
@@ -31,10 +37,10 @@ export function ExportCompleted({ job }: Props) {
       <div className="flex flex-col gap-3 w-full max-w-md pt-2">
         <a
           href={downloadURL}
-          download
+          download={downloadFilename}
           className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg shadow-md transition-all text-sm"
         >
-          <Download size={16} /> Download Video (.mp4)
+          <Download size={16} /> Download Video ({downloadFilename})
         </a>
 
         <Button

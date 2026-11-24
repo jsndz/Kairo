@@ -106,6 +106,9 @@ function App() {
       revision={revision}
       clipsCount={project.clips.length}
       hasIncompleteAssets={hasIncompleteAssets}
+      clips={project.clips}
+      tracks={project.tracks}
+      media={available}
     />
     {error && <div className="editor-toast" role="alert">
       {error}
