@@ -16,10 +16,8 @@ import (
 	httpadapter "server/internal/adapters/inbound/http"
 	"server/internal/adapters/inbound/ws"
 	"server/internal/adapters/outbound/ffmpeg"
-	"server/internal/adapters/outbound/storage/catalog"
 	exportstorage "server/internal/adapters/outbound/storage/export"
 	"server/internal/adapters/outbound/storage/fs"
-	"server/internal/adapters/outbound/storage/jsonl"
 	"server/internal/adapters/outbound/storage/minio"
 	appexport "server/internal/app/export"
 	"server/internal/app/project"
@@ -61,20 +59,6 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 
-	svc, err := project.Open(
-		catalog.JSONCatalog{Path: filepath.Join(data, "metadata.json")},
-		jsonl.JSONL{Path: filepath.Join(data, "operations.jsonl")},
-		store,
-		maxUpload,
-	)
-	if err != nil {
-		return err
-	}
-
-	if err = fs.SyncDir(data); err != nil {
-		return err
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	err = store.Ensure(ctx)
 	cancel()
@@ -82,7 +66,40 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("initialize MinIO bucket: %w", err)
 	}
 
-	hub := ws.NewHub(svc)
+	projectsDir := filepath.Join(data, "projects")
+	projMgr, err := project.NewManager(projectsDir, store, maxUpload)
+	if err != nil {
+		return fmt.Errorf("initialize project manager: %w", err)
+	}
+
+	// Automatically migrate legacy single-project files if present
+	if err := projMgr.MigrateLegacy(data); err != nil {
+		logger.Warn("legacy project migration notice", "error", err)
+	}
+
+	// Ensure at least one project exists
+	projList, err := projMgr.List(context.Background())
+	if err == nil && len(projList) == 0 {
+		_, _, err = projMgr.Create(context.Background(), "Default Project")
+		if err != nil {
+			return fmt.Errorf("create default project: %w", err)
+		}
+	}
+
+	if err = fs.SyncDir(data); err != nil {
+		return err
+	}
+
+	hub := ws.NewHub(projMgr)
+
+	// Idle project eviction loop (evicts inactive projects from RAM every 2 minutes)
+	go func() {
+		ticker := time.NewTicker(2 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			projMgr.EvictIdle(5*time.Minute, hub.IsBusy)
+		}
+	}()
 
 	exportDir := filepath.Join(data, "exports")
 	exportRepo, err := exportstorage.NewFSRepository(exportDir)
@@ -94,13 +111,13 @@ func run(logger *slog.Logger) error {
 	ffmpegRunner := ffmpeg.NewRunner(env("FFMPEG_PATH", "ffmpeg"), ffprobeProber, store)
 
 	exportSvc, err := appexport.New(appexport.Config{
-		ProjectReader:  svc,
-		Repo:           exportRepo,
-		Renderer:       ffmpegRunner,
-		Prober:         ffprobeProber,
-		ObjectStore:    store,
-		ScratchBaseDir: filepath.Join(exportDir, "scratch"),
-		Logger:         logger,
+		ProjectResolver: projMgr,
+		Repo:            exportRepo,
+		Renderer:        ffmpegRunner,
+		Prober:          ffprobeProber,
+		ObjectStore:     store,
+		ScratchBaseDir:  filepath.Join(exportDir, "scratch"),
+		Logger:          logger,
 	})
 	if err != nil {
 		return fmt.Errorf("initialize export service: %w", err)
@@ -113,7 +130,7 @@ func run(logger *slog.Logger) error {
 
 	server := &http.Server{
 		Addr:              env("KAIRO_ADDR", "127.0.0.1:8080"),
-		Handler:           httpadapter.New(svc, exportSvc, hub, logger),
+		Handler:           httpadapter.New(projMgr, exportSvc, hub, logger),
 		ReadTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      35 * time.Second,
@@ -134,7 +151,7 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 
-	logger.Info("Kairo ready", "address", server.Addr, "revision", svc.Get().Revision)
+	logger.Info("Kairo ready", "address", server.Addr)
 	if err = server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

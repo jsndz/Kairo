@@ -8,69 +8,52 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 
 	httpadapter "server/internal/adapters/inbound/http"
-	"server/internal/adapters/outbound/storage/catalog"
-	"server/internal/adapters/outbound/storage/jsonl"
 	"server/internal/app/project"
 	"server/internal/domain/asset"
-	domErrors "server/internal/domain/errors"
 	"server/internal/domain/record"
-	"server/internal/domain/timeline"
 	"server/internal/ports"
 )
 
-type mockObjects struct {
-	data map[string]asset.ObjectInfo
-}
+type mockObjects struct{}
 
-func (m *mockObjects) Bucket() string { return "test-bucket" }
-func (m *mockObjects) UploadPolicy(_ context.Context, key string, _ asset.Source) (asset.Upload, error) {
-	return asset.Upload{URL: "https://minio.test/upload", Fields: map[string]string{"key": key}}, nil
+func (mockObjects) Bucket() string { return "test-bucket" }
+func (mockObjects) UploadPolicy(context.Context, string, asset.Source) (asset.Upload, error) {
+	return asset.Upload{URL: "https://example.com/put"}, nil
 }
-func (m *mockObjects) Stat(_ context.Context, key string) (asset.ObjectInfo, error) {
-	if info, ok := m.data[key]; ok {
-		return info, nil
-	}
-	return asset.ObjectInfo{}, domErrors.ErrNotFound
+func (mockObjects) Stat(context.Context, string) (asset.ObjectInfo, error) {
+	return asset.ObjectInfo{Size: 100, MIME: "video/mp4"}, nil
 }
-func (m *mockObjects) Promote(_ context.Context, stage, key, etag string) error {
-	if m.data[stage].ETag != etag {
-		return domErrors.ErrConflict
-	}
-	m.data[key] = m.data[stage]
-	return nil
+func (mockObjects) Promote(context.Context, string, string, string) error { return nil }
+func (mockObjects) ReadURL(context.Context, string) (string, error) {
+	return "https://example.com/get", nil
 }
-func (m *mockObjects) ReadURL(_ context.Context, _ string) (string, error) {
-	return "https://minio.test/read", nil
-}
-func (m *mockObjects) Download(_ context.Context, _ string, _ string) error {
-	return nil
-}
-func (m *mockObjects) Upload(_ context.Context, _ string, _ string, _ string) error {
-	return nil
-}
+func (mockObjects) Download(context.Context, string, string) error { return nil }
+func (mockObjects) Upload(context.Context, string, string, string) error { return nil }
 
-func setupAPI(t *testing.T) http.Handler {
+func setupAPI(t *testing.T) (http.Handler, string) {
 	t.Helper()
 	dir := t.TempDir()
-	cat := catalog.JSONCatalog{Path: filepath.Join(dir, "metadata.json")}
-	l := jsonl.JSONL{Path: filepath.Join(dir, "operations.jsonl")}
-	obj := &mockObjects{data: make(map[string]asset.ObjectInfo)}
+	obj := mockObjects{}
 
-	svc, err := project.Open(cat, l, obj, 10<<20)
+	mgr, err := project.NewManager(dir, obj, 10<<20)
 	if err != nil {
-		t.Fatalf("failed to open service: %v", err)
+		t.Fatalf("failed to create manager: %v", err)
+	}
+
+	summary, _, err := mgr.Create(context.Background(), "Test Project")
+	if err != nil {
+		t.Fatalf("failed to create project: %v", err)
 	}
 
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	return httpadapter.New(svc, nil, nil, logger)
+	return httpadapter.New(mgr, nil, nil, logger), summary.ID
 }
 
 func TestHealthCheck(t *testing.T) {
-	handler := setupAPI(t)
+	handler, _ := setupAPI(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -89,9 +72,9 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
-func TestGetProject(t *testing.T) {
-	handler := setupAPI(t)
-	req := httptest.NewRequest(http.MethodGet, "/api/project", nil)
+func TestGetProjectByID(t *testing.T) {
+	handler, projID := setupAPI(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/projects/"+projID, nil)
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -104,13 +87,13 @@ func TestGetProject(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&state); err != nil {
 		t.Fatalf("failed to decode project state: %v", err)
 	}
-	if state.ID == "" {
-		t.Fatalf("expected non-empty project ID")
+	if state.ID != projID {
+		t.Fatalf("expected project ID %q, got %q", projID, state.ID)
 	}
 }
 
 func TestAssetRegistrationAndValidation(t *testing.T) {
-	handler := setupAPI(t)
+	handler, projID := setupAPI(t)
 
 	// Valid video registration
 	validBody := map[string]any{
@@ -124,7 +107,7 @@ func TestAssetRegistrationAndValidation(t *testing.T) {
 		"height":   1080,
 	}
 	bodyBytes, _ := json.Marshal(validBody)
-	req := httptest.NewRequest(http.MethodPost, "/api/assets", bytes.NewReader(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+projID+"/assets", bytes.NewReader(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -152,7 +135,7 @@ func TestAssetRegistrationAndValidation(t *testing.T) {
 		"duration": 1.0,
 	}
 	badBytes, _ := json.Marshal(invalidBody)
-	reqBad := httptest.NewRequest(http.MethodPost, "/api/assets", bytes.NewReader(badBytes))
+	reqBad := httptest.NewRequest(http.MethodPost, "/api/projects/"+projID+"/assets", bytes.NewReader(badBytes))
 	reqBad.Header.Set("Content-Type", "application/json")
 	recBad := httptest.NewRecorder()
 
@@ -163,7 +146,7 @@ func TestAssetRegistrationAndValidation(t *testing.T) {
 	}
 
 	// Content-Type enforcement
-	reqBadCT := httptest.NewRequest(http.MethodPost, "/api/assets", bytes.NewReader(bodyBytes))
+	reqBadCT := httptest.NewRequest(http.MethodPost, "/api/projects/"+projID+"/assets", bytes.NewReader(bodyBytes))
 	reqBadCT.Header.Set("Content-Type", "text/plain")
 	recBadCT := httptest.NewRecorder()
 	handler.ServeHTTP(recBadCT, reqBadCT)
@@ -172,7 +155,7 @@ func TestAssetRegistrationAndValidation(t *testing.T) {
 	}
 
 	// Cross-site fetch protection
-	reqCSRF := httptest.NewRequest(http.MethodPost, "/api/assets", bytes.NewReader(bodyBytes))
+	reqCSRF := httptest.NewRequest(http.MethodPost, "/api/projects/"+projID+"/assets", bytes.NewReader(bodyBytes))
 	reqCSRF.Header.Set("Content-Type", "application/json")
 	reqCSRF.Header.Set("Sec-Fetch-Site", "cross-site")
 	recCSRF := httptest.NewRecorder()
@@ -182,73 +165,42 @@ func TestAssetRegistrationAndValidation(t *testing.T) {
 	}
 }
 
-type inMemoryMockService struct {
-	state ports.State
-}
+type mockManagerForRoomHTTP struct{}
 
-func (m *inMemoryMockService) Get() ports.State {
-	return m.state
-}
-
-func (m *inMemoryMockService) GetOpsSince(_ uint64) ([]record.Record, error) {
+func (m *mockManagerForRoomHTTP) List(_ context.Context) ([]record.ProjectSummary, error) {
 	return nil, nil
 }
-
-func (m *inMemoryMockService) ProjectID() string {
-	return m.state.ID
+func (m *mockManagerForRoomHTTP) Create(_ context.Context, name string) (record.ProjectSummary, ports.ProjectInstance, error) {
+	return record.ProjectSummary{ID: "room-generated-999", Name: name}, nil, nil
 }
-
-func (m *inMemoryMockService) Commit(_ timeline.Edit) (ports.State, error) {
-	m.state.Revision++
-	return m.state, nil
+func (m *mockManagerForRoomHTTP) Get(_ context.Context, _ string) (ports.ProjectInstance, error) {
+	return nil, nil
 }
-
-func (m *inMemoryMockService) CommitAuthor(_ timeline.Edit, _ string, _ ports.OwnershipChecker) (ports.State, error) {
-	m.state.Revision++
-	return m.state, nil
+func (m *mockManagerForRoomHTTP) Delete(_ context.Context, _ string) error {
+	return nil
 }
+func (m *mockManagerForRoomHTTP) Touch(_ string) {}
 
-func (m *inMemoryMockService) Register(src asset.Source) (asset.Asset, error) {
-	return asset.Asset{ID: "mock-asset-1", Source: src, Status: "pending"}, nil
-}
-
-func (m *inMemoryMockService) Begin(_ context.Context, id string) (asset.Asset, asset.Upload, error) {
-	return asset.Asset{ID: id, Status: "uploading"}, asset.Upload{URL: "https://mock/upload"}, nil
-}
-
-func (m *inMemoryMockService) Complete(_ context.Context, id, _ string) (asset.Asset, error) {
-	return asset.Asset{ID: id, Status: "completed"}, nil
-}
-
-func (m *inMemoryMockService) Fail(id, _ string) (asset.Asset, error) {
-	return asset.Asset{ID: id, Status: "failed"}, nil
-}
-
-func (m *inMemoryMockService) Content(_ context.Context, _ string) (string, error) {
-	return "https://mock/content", nil
-}
-
-func TestHTTPAPI_WithMocks(t *testing.T) {
-	mock := &inMemoryMockService{}
-	mock.state.ID = "test-mock-project"
-	mock.state.Revision = 42
-
+func TestCreateRoom(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
-	handler := httpadapter.New(mock, nil, nil, logger)
+	mgr := &mockManagerForRoomHTTP{}
+	handler := httpadapter.New(mgr, nil, nil, logger)
 
-	// Test GET /api/project
-	req := httptest.NewRequest(http.MethodGet, "/api/project", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/rooms", bytes.NewReader([]byte(`{"name":"My Edit Room"}`)))
+	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
+
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
-	var state ports.State
-	if err := json.NewDecoder(rec.Body).Decode(&state); err != nil {
+
+	var res map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&res); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if state.ID != "test-mock-project" || state.Revision != 42 {
-		t.Fatalf("unexpected state: %+v", state)
+	if res["roomId"] != "room-generated-999" || res["name"] != "My Edit Room" {
+		t.Fatalf("unexpected room created: %+v", res)
 	}
 }

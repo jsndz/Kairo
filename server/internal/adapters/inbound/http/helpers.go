@@ -23,9 +23,6 @@ func (a *API) attempt(apply func(context.Context, string, string) (asset.Asset, 
 			return
 		}
 		res, err := apply(r.Context(), r.PathValue("id"), body.Attempt)
-		if err == nil && a.broadcaster != nil {
-			a.broadcaster.BroadcastAsset(res)
-		}
 		a.reply(w, r, nethttp.StatusOK, res, err)
 	}
 }
@@ -48,20 +45,21 @@ func (a *API) read(w nethttp.ResponseWriter, r *nethttp.Request, dst any) bool {
 
 func (a *API) reply(w nethttp.ResponseWriter, r *nethttp.Request, status int, data any, err error) {
 	if err != nil {
-		message := err.Error()
 		switch {
-		case errors.Is(err, domErrors.ErrInvalid):
-			status = nethttp.StatusUnprocessableEntity
 		case errors.Is(err, domErrors.ErrNotFound):
-			status = nethttp.StatusNotFound
+			nethttp.Error(w, `{"error":"not found"}`, nethttp.StatusNotFound)
 		case errors.Is(err, domErrors.ErrConflict):
-			status = nethttp.StatusConflict
+			nethttp.Error(w, `{"error":"conflict"}`, nethttp.StatusConflict)
+		case errors.Is(err, domErrors.ErrUnavailable):
+			nethttp.Error(w, `{"error":"storage unavailable"}`, nethttp.StatusServiceUnavailable)
 		default:
-			status = nethttp.StatusServiceUnavailable
-			message = "Storage is unavailable. Retry or check the server logs."
-			a.log.Error("request failed", "method", r.Method, "path", r.URL.Path, "error", err)
+			nethttp.Error(w, `{"error":"invalid request"}`, nethttp.StatusUnprocessableEntity)
 		}
-		data = map[string]string{"error": message}
+		return
+	}
+
+	if status == 0 {
+		status = nethttp.StatusOK
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -30,11 +30,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const exportApi = {
-  createExport: (req: CreateExportRequest) =>
-    request<ExportJob>('/exports', {
+  createExport: (req: CreateExportRequest) => {
+    const pid = req.projectId || ''
+    const path = `/projects/${encodeURIComponent(pid)}/exports`
+    return request<ExportJob>(path, {
       method: 'POST',
       body: JSON.stringify(req),
-    }),
+    })
+  },
 
   getExport: (id: string) => request<ExportJob>('/exports/' + encodeURIComponent(id)),
 

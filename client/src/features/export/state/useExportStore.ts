@@ -39,6 +39,7 @@ type ExportState = {
     revision: number
     clipsCount: number
     hasIncompleteAssets: boolean
+    projectId?: string
     clips?: Clip[]
     tracks?: Track[]
     media?: Media[]
@@ -155,6 +156,7 @@ export const useExportStore = create<ExportState>((set, get) => {
       revision,
       clipsCount,
       hasIncompleteAssets,
+      projectId,
       clips,
       tracks,
       media,
@@ -266,6 +268,7 @@ export const useExportStore = create<ExportState>((set, get) => {
           requestId,
           revision,
           settings: { ...settings, filename },
+          projectId: projectId || '',
         })
 
         sessionStorage.setItem(SESSION_KEY, job.id)

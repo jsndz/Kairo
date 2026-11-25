@@ -29,6 +29,13 @@ func (m *mockProjectReader) GetOpsSince(_ uint64) ([]record.Record, error) {
 func (m *mockProjectReader) ProjectID() string {
 	return m.state.ID
 }
+func (m *mockProjectReader) Summary() record.ProjectSummary {
+	return record.ProjectSummary{
+		ID:       m.state.ID,
+		Name:     m.state.Project.Name,
+		Revision: m.state.Revision,
+	}
+}
 
 type mockRenderer struct {
 	renderDelay time.Duration

@@ -28,6 +28,7 @@ type ProjectReader interface {
 	Get() State
 	GetOpsSince(seq uint64) ([]record.Record, error)
 	ProjectID() string
+	Summary() record.ProjectSummary
 }
 
 // OperationCommitter validates and applies timeline mutations.

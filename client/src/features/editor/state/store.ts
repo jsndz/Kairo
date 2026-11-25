@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { commitEdit, getProject, projectSocket, type PeerPresence, type ProjectState } from '../api'
+import { commitEdit, getProject, projectSocket, setActiveProjectId, getActiveProjectId, type PeerPresence, type ProjectState } from '../api/index.ts'
 import { emptyProject, MAX_FRAMES, trackKind, type Asset, type Media } from './model'
 import type { Edit } from './operations'
 import type { OwnershipSlice } from './ownership'
@@ -12,7 +12,8 @@ type Editor = ProjectState &
     error: string | null
     notice: string | null
     peerPresence: PeerPresence | null
-    initialize: () => Promise<void>
+    initialize: (projectId?: string) => Promise<void>
+    reset: () => void
     dispatch: (edit: Edit) => Promise<boolean>
     select: (id: string | null) => void
     putAsset: (asset: Asset) => void
@@ -153,18 +154,44 @@ export const useEditor = create<Editor>((set, get) => {
                 ...peerPresence,
               },
       })),
-    initialize: () => {
-      projectSocket.connect()
-      if (get().ready) return Promise.resolve()
+    initialize: (projectId?: string) => {
+      if (projectId) {
+        setActiveProjectId(projectId)
+      }
+      const activeId = projectId || getActiveProjectId()
+      projectSocket.connect(activeId || undefined)
+      if (get().ready && get().id === activeId) return Promise.resolve()
       if (opening) return opening
-      set({ error: null })
-      opening = getProject()
+      set({ error: null, ready: false })
+      opening = getProject(activeId || undefined)
         .then(state => adopt(state))
         .catch((error: unknown) => set({ error: errorMessage(error) }))
         .finally(() => {
           opening = undefined
         })
       return opening
+    },
+    reset: () => {
+      projectSocket.close()
+      setActiveProjectId('')
+      set({
+        id: '',
+        revision: 0,
+        project: emptyProject(),
+        canUndo: false,
+        canRedo: false,
+        ready: false,
+        connected: false,
+        selected: null,
+        error: null,
+        notice: null,
+        peerPresence: null,
+        owners: {},
+        myClientId: null,
+        incomingPermission: null,
+        outgoingPermission: null,
+        activeConsensus: null,
+      })
     },
     dispatch: edit =>
       serialize(async () => {
@@ -188,7 +215,7 @@ export const useEditor = create<Editor>((set, get) => {
             return false
           }
           if (needsRefresh) {
-            adopt(await getProject())
+            adopt(await getProject(get().id))
             needsRefresh = false
           }
 
@@ -197,7 +224,7 @@ export const useEditor = create<Editor>((set, get) => {
             state = await projectSocket.sendOp(id, get().revision, edit)
           } catch {
             // Fallback to HTTP if WS sendOp encounters an error
-            state = await commitEdit(id, get().revision, edit)
+            state = await commitEdit(id, get().revision, edit, get().id)
           }
 
           const selected =
@@ -214,7 +241,7 @@ export const useEditor = create<Editor>((set, get) => {
         } catch (error) {
           needsRefresh = true
           try {
-            adopt(await getProject())
+            adopt(await getProject(get().id))
             needsRefresh = false
           } catch {
             /* Resync before the next edit. */

@@ -12,6 +12,16 @@ export class ApiError extends Error {
   }
 }
 
+let activeProjectId = ''
+
+export function setActiveProjectId(id: string) {
+  activeProjectId = id
+}
+
+export function getActiveProjectId(): string {
+  return activeProjectId
+}
+
 async function request<T>(path: string, body?: object): Promise<T> {
   const response = await fetch('/api' + path, {
     ...(body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
@@ -24,12 +34,37 @@ async function request<T>(path: string, body?: object): Promise<T> {
   return response.json()
 }
 
-export const getProject = () => request<ProjectState>('/project')
-export function commitEdit(id: string, expectedRevision: number, { type, ...payload }: Edit) {
-  return request<ProjectState>('/project/operations', { id, expectedRevision, type, payload })
+export const getProject = (projectId?: string) => {
+  const pid = projectId || activeProjectId
+  return request<ProjectState>(`/projects/${encodeURIComponent(pid)}`)
 }
-export const register = (source: Source) => request<Asset>('/assets', source)
-export const begin = (id: string) => request<{ asset: Asset; upload: Upload }>('/assets/' + id + '/upload', {})
-export const complete = (id: string, attempt: string) => request<Asset>('/assets/' + id + '/complete', { attempt })
-export const fail = (id: string, attempt: string) => request<Asset>('/assets/' + id + '/fail', { attempt })
-export const contentURL = (id: string) => '/api/assets/' + id + '/content'
+
+export function commitEdit(id: string, expectedRevision: number, { type, ...payload }: Edit, projectId?: string) {
+  const pid = projectId || activeProjectId
+  return request<ProjectState>(`/projects/${encodeURIComponent(pid)}/operations`, { id, expectedRevision, type, payload })
+}
+
+export const register = (source: Source, projectId?: string) => {
+  const pid = projectId || activeProjectId
+  return request<Asset>(`/projects/${encodeURIComponent(pid)}/assets`, source)
+}
+
+export const begin = (id: string, projectId?: string) => {
+  const pid = projectId || activeProjectId
+  return request<{ asset: Asset; upload: Upload }>(`/projects/${encodeURIComponent(pid)}/assets/${id}/upload`, {})
+}
+
+export const complete = (id: string, attempt: string, projectId?: string) => {
+  const pid = projectId || activeProjectId
+  return request<Asset>(`/projects/${encodeURIComponent(pid)}/assets/${id}/complete`, { attempt })
+}
+
+export const fail = (id: string, attempt: string, projectId?: string) => {
+  const pid = projectId || activeProjectId
+  return request<Asset>(`/projects/${encodeURIComponent(pid)}/assets/${id}/fail`, { attempt })
+}
+
+export const contentURL = (id: string, projectId?: string) => {
+  const pid = projectId || activeProjectId
+  return `/api/projects/${encodeURIComponent(pid)}/assets/${id}/content`
+}

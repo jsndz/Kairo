@@ -39,6 +39,7 @@ export type CreateExportRequest = {
   requestId: string
   revision: number
   settings: ExportSettings
+  projectId: string
 }
 
 export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {

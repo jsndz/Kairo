@@ -15,54 +15,57 @@ import (
 // Broadcaster delivers real-time notifications to connected clients.
 type Broadcaster interface {
 	BroadcastOperation(projectID string, edit timeline.Edit, state ports.State, author string)
-	BroadcastAsset(a asset.Asset)
+	BroadcastProjectAsset(projectID string, a asset.Asset)
+	BroadcastProjectAssetDeleted(projectID, id string)
 }
 
-// Service defines the inbound port dependencies for HTTP endpoints.
-type Service interface {
-	ports.ProjectService
-	ports.AssetManager
+// WSHandler combines WebSocket serving and room broadcasting.
+type WSHandler interface {
+	Broadcaster
+	ServeWs(w nethttp.ResponseWriter, r *nethttp.Request)
 }
 
 // API provides the HTTP transport layer for Kairo.
 type API struct {
-	service     Service
+	manager     ports.ProjectManager
 	exportSvc   ports.ExportService
 	log         *slog.Logger
 	broadcaster Broadcaster
 }
 
 // New registers API routes, applies middleware, and returns an nethttp.Handler.
-func New(svc Service, exportSvc ports.ExportService, wsHandler nethttp.Handler, logger *slog.Logger) nethttp.Handler {
+func New(manager ports.ProjectManager, exportSvc ports.ExportService, wsHandler WSHandler, logger *slog.Logger) nethttp.Handler {
 	var broadcaster Broadcaster
-	if b, ok := wsHandler.(Broadcaster); ok {
-		broadcaster = b
+	if wsHandler != nil {
+		broadcaster = wsHandler
 	}
-	a := &API{service: svc, exportSvc: exportSvc, log: logger, broadcaster: broadcaster}
+	a := &API{manager: manager, exportSvc: exportSvc, log: logger, broadcaster: broadcaster}
 	mux := nethttp.NewServeMux()
 
 	// Health check
 	mux.HandleFunc("GET /api/health", a.handleHealth)
 
-	// WebSocket real-time sync
+	// Isolated Rooms & Project-scoped Routes
+	mux.HandleFunc("POST /api/rooms", a.handleCreateRoom)
+	mux.HandleFunc("POST /api/projects", a.handleCreateProject)
+	mux.HandleFunc("GET /api/projects/{projectId}", a.handleGetProjectByID)
+	mux.HandleFunc("DELETE /api/projects/{projectId}", a.handleDeleteProjectByID)
+
+	mux.HandleFunc("POST /api/projects/{projectId}/operations", a.handleCommitOperationByProject)
+	mux.HandleFunc("POST /api/projects/{projectId}/assets", a.handleRegisterAssetByProject)
+	mux.HandleFunc("POST /api/projects/{projectId}/assets/{id}/upload", a.handleBeginUploadByProject)
+	mux.HandleFunc("POST /api/projects/{projectId}/assets/{id}/complete", a.handleCompleteUploadByProject)
+	mux.HandleFunc("POST /api/projects/{projectId}/assets/{id}/fail", a.handleFailUploadByProject)
+	mux.HandleFunc("GET /api/projects/{projectId}/assets/{id}/content", a.handleAssetContentByProject)
+
+	// WebSocket real-time sync (strictly project-scoped, calls ServeWs directly)
 	if wsHandler != nil {
-		mux.Handle("GET /api/project/ws", wsHandler)
+		mux.HandleFunc("GET /api/projects/{projectId}/ws", wsHandler.ServeWs)
 	}
-
-	// Project & Operations
-	mux.HandleFunc("GET /api/project", a.handleGetProject)
-	mux.HandleFunc("POST /api/project/operations", a.handleCommitOperation)
-
-	// Asset registration & lifecycle
-	mux.HandleFunc("POST /api/assets", a.handleRegisterAsset)
-	mux.HandleFunc("POST /api/assets/{id}/upload", a.handleBeginUpload)
-	mux.HandleFunc("POST /api/assets/{id}/complete", a.handleCompleteUpload)
-	mux.HandleFunc("POST /api/assets/{id}/fail", a.handleFailUpload)
-	mux.HandleFunc("GET /api/assets/{id}/content", a.handleAssetContent)
 
 	// Export lifecycle
 	if exportSvc != nil {
-		mux.HandleFunc("POST /api/exports", a.handleCreateExport)
+		mux.HandleFunc("POST /api/projects/{projectId}/exports", a.handleCreateExportByProject)
 		mux.HandleFunc("GET /api/exports/{id}", a.handleGetExport)
 		mux.HandleFunc("POST /api/exports/{id}/cancel", a.handleCancelExport)
 		mux.HandleFunc("POST /api/exports/{id}/retry", a.handleRetryExport)

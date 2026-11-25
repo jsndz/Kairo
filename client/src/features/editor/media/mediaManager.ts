@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ApiError, begin, complete, fail, register, uploadObject } from '../api'
+import { ApiError, begin, complete, fail, register, uploadObject } from '../api/index.ts'
 import { cacheFile, readFiles, type CachedFile } from './localMedia'
 import { FPS, type Asset, type Source } from '../state/model'
 import { errorMessage, serialize, useEditor } from '../state/store'

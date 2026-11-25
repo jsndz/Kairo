@@ -4,7 +4,6 @@ import (
 	nethttp "net/http"
 
 	domainExport "server/internal/domain/export"
-	"server/internal/ports"
 )
 
 type createExportRequest struct {
@@ -17,46 +16,6 @@ type createExportRequest struct {
 	FrameRate  domainExport.FrameRate  `json:"frameRate,omitempty"`
 	Quality    domainExport.Quality    `json:"quality,omitempty"`
 	Method     domainExport.Method     `json:"method,omitempty"`
-}
-
-func (a *API) handleCreateExport(w nethttp.ResponseWriter, r *nethttp.Request) {
-	var body createExportRequest
-	if !a.read(w, r, &body) {
-		return
-	}
-
-	settings := domainExport.DefaultSettings()
-	if body.Settings != nil {
-		settings = *body.Settings
-	} else {
-		if body.Format != "" {
-			settings.Format = body.Format
-		}
-		if body.Filename != "" {
-			settings.Filename = body.Filename
-		}
-		if body.Resolution != "" {
-			settings.Resolution = body.Resolution
-		}
-		if body.FrameRate != 0 {
-			settings.FrameRate = body.FrameRate
-		}
-		if body.Quality != "" {
-			settings.Quality = body.Quality
-		}
-		if body.Method != "" {
-			settings.Method = body.Method
-		}
-	}
-
-	req := ports.SubmitRequest{
-		RequestID: body.RequestID,
-		Revision:  body.Revision,
-		Settings:  settings,
-	}
-
-	job, err := a.exportSvc.Submit(r.Context(), req)
-	a.reply(w, r, nethttp.StatusOK, job, err)
 }
 
 func (a *API) handleGetExport(w nethttp.ResponseWriter, r *nethttp.Request) {

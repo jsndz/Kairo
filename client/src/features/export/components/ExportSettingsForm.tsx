@@ -17,6 +17,7 @@ type Props = {
   revision: number
   clipsCount: number
   hasIncompleteAssets: boolean
+  projectId?: string
   clips?: Clip[]
   tracks?: Track[]
   media?: Media[]
@@ -26,6 +27,7 @@ export function ExportSettingsForm({
   revision,
   clipsCount,
   hasIncompleteAssets,
+  projectId,
   clips,
   tracks,
   media,
@@ -56,6 +58,7 @@ export function ExportSettingsForm({
       revision,
       clipsCount,
       hasIncompleteAssets,
+      projectId,
       clips,
       tracks,
       media,

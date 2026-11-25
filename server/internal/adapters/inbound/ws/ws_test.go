@@ -13,7 +13,9 @@ import (
 	"github.com/gorilla/websocket"
 
 	"server/internal/domain/asset"
+	"server/internal/domain/record"
 	"server/internal/domain/timeline"
+	"server/internal/ports"
 	"server/internal/app/project"
 	"server/internal/adapters/outbound/storage/catalog"
 	"server/internal/adapters/outbound/storage/jsonl"
@@ -36,6 +38,22 @@ func (mockObjects) ReadURL(context.Context, string) (string, error) {
 func (mockObjects) Download(context.Context, string, string) error { return nil }
 func (mockObjects) Upload(context.Context, string, string, string) error { return nil }
 
+type testProjectManager struct {
+	svc ports.ProjectInstance
+}
+
+func (m *testProjectManager) List(ctx context.Context) ([]record.ProjectSummary, error) {
+	return nil, nil
+}
+func (m *testProjectManager) Create(ctx context.Context, name string) (record.ProjectSummary, ports.ProjectInstance, error) {
+	return record.ProjectSummary{}, m.svc, nil
+}
+func (m *testProjectManager) Get(ctx context.Context, id string) (ports.ProjectInstance, error) {
+	return m.svc, nil
+}
+func (m *testProjectManager) Delete(ctx context.Context, id string) error { return nil }
+func (m *testProjectManager) Touch(id string)                             {}
+
 func setupTestHub(t *testing.T) (*ws.Hub, *httptest.Server) {
 	t.Helper()
 	dir := t.TempDir()
@@ -47,9 +65,10 @@ func setupTestHub(t *testing.T) (*ws.Hub, *httptest.Server) {
 		t.Fatalf("Open service: %v", err)
 	}
 
-	hub := ws.NewHub(svc)
+	mockMgr := &testProjectManager{svc: svc}
+	hub := ws.NewHub(mockMgr)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/project/ws", hub.ServeWs)
+	mux.HandleFunc("/api/projects/{projectId}/ws", hub.ServeWs)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
@@ -58,7 +77,7 @@ func setupTestHub(t *testing.T) (*ws.Hub, *httptest.Server) {
 
 func TestRoomCapacity(t *testing.T) {
 	_, server := setupTestHub(t)
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/project/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/projects/proj-test/ws"
 
 	// Client 1 connects
 	c1, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
@@ -87,7 +106,7 @@ func TestRoomCapacity(t *testing.T) {
 
 func TestPresenceAndOperations(t *testing.T) {
 	_, server := setupTestHub(t)
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/project/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/projects/proj-test/ws"
 
 	c1, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
@@ -193,7 +212,7 @@ func TestPresenceAndOperations(t *testing.T) {
 
 func connectTwoClients(t *testing.T, server *httptest.Server) (*websocket.Conn, *websocket.Conn, ws.OutMessage, ws.OutMessage) {
 	t.Helper()
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/project/ws"
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/projects/proj-test/ws"
 
 	c1, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
@@ -535,7 +554,10 @@ func TestRoom_OwnershipReclamationOnDisconnect(t *testing.T) {
 	c1, c2, _, _ := connectTwoClients(t, server)
 	defer c2.Close()
 
-	room := hub.GetOrCreateRoom(hub.Service().ProjectID())
+	room, err := hub.GetOrCreateRoom("proj-test")
+	if err != nil {
+		t.Fatalf("get or create room: %v", err)
+	}
 	room.SetGraceDuration(50 * time.Millisecond)
 
 	// c1 claims clip-X

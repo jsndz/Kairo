@@ -1,3 +1,3 @@
-export * from './client'
-export * from './uploader'
-export * from './ws'
+export * from './client.ts'
+export * from './uploader.ts'
+export * from './ws.ts'

@@ -82,13 +82,40 @@ class ProjectSocket {
   private isExplicitClose = false
   private handlers: SocketHandlers = {}
   public clientId: string | null = null
+  public projectId: string | null = null
   public isConnected = false
 
   setHandlers(handlers: SocketHandlers) {
     this.handlers = { ...this.handlers, ...handlers }
   }
 
-  connect() {
+  close() {
+    this.isExplicitClose = true
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    if (this.presenceTimer) {
+      clearTimeout(this.presenceTimer)
+      this.presenceTimer = null
+    }
+    if (this.ws) {
+      this.ws.close()
+      this.ws = null
+    }
+    this.isConnected = false
+    this.handlers.onConnectionChange?.(false)
+    this.cleanupPendingOps(new Error('WebSocket connection closed'))
+  }
+
+  connect(projectId?: string) {
+    if (projectId !== undefined && projectId !== this.projectId) {
+      if (this.ws) {
+        this.close()
+      }
+      this.projectId = projectId
+    }
+
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return
     }
@@ -96,7 +123,11 @@ class ProjectSocket {
     this.isExplicitClose = false
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const query = this.clientId ? `?clientId=${encodeURIComponent(this.clientId)}` : ''
-    const url = `${protocol}//${window.location.host}/api/project/ws${query}`
+    if (!this.projectId) {
+      return
+    }
+    const basePath = `/api/projects/${encodeURIComponent(this.projectId)}/ws`
+    const url = `${protocol}//${window.location.host}${basePath}${query}`
 
     try {
       this.ws = new WebSocket(url)

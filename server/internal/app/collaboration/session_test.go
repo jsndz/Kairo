@@ -75,6 +75,16 @@ func (m *mockProjectService) ProjectID() string {
 	return "proj-test"
 }
 
+func (m *mockProjectService) Summary() record.ProjectSummary {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return record.ProjectSummary{
+		ID:       m.state.ID,
+		Name:     m.state.Project.Name,
+		Revision: m.state.Revision,
+	}
+}
+
 func (m *mockProjectService) Commit(edit timeline.Edit) (ports.State, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

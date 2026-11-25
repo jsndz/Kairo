@@ -22,14 +22,15 @@ var _ ports.ExportService = (*Service)(nil)
 
 // Service orchestrates export requests, queueing, and sequential rendering.
 type Service struct {
-	mu             sync.Mutex
-	projectReader  ports.ProjectReader
-	repo           ports.JobRepository
-	renderer       ports.MediaRenderer
-	prober         ports.MediaProber
-	objectStore    ports.ObjectStore
-	scratchBaseDir string
-	log            *slog.Logger
+	mu              sync.Mutex
+	projectReader   ports.ProjectReader
+	projectResolver ports.ProjectResolver
+	repo            ports.JobRepository
+	renderer        ports.MediaRenderer
+	prober          ports.MediaProber
+	objectStore     ports.ObjectStore
+	scratchBaseDir  string
+	log             *slog.Logger
 
 	queue         chan string
 	activeCancels map[string]context.CancelFunc
@@ -39,14 +40,15 @@ type Service struct {
 
 // Config contains dependencies and directories for export Service.
 type Config struct {
-	ProjectReader  ports.ProjectReader
-	Repo           ports.JobRepository
-	Renderer       ports.MediaRenderer
-	Prober         ports.MediaProber
-	ObjectStore    ports.ObjectStore
-	ScratchBaseDir string
-	QueueCapacity  int
-	Logger         *slog.Logger
+	ProjectReader   ports.ProjectReader
+	ProjectResolver ports.ProjectResolver
+	Repo            ports.JobRepository
+	Renderer        ports.MediaRenderer
+	Prober          ports.MediaProber
+	ObjectStore     ports.ObjectStore
+	ScratchBaseDir  string
+	QueueCapacity   int
+	Logger          *slog.Logger
 }
 
 // New creates and starts a sequential export service.
@@ -65,16 +67,17 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	s := &Service{
-		projectReader:  cfg.ProjectReader,
-		repo:           cfg.Repo,
-		renderer:       cfg.Renderer,
-		prober:         cfg.Prober,
-		objectStore:    cfg.ObjectStore,
-		scratchBaseDir: cfg.ScratchBaseDir,
-		log:            cfg.Logger,
-		queue:          make(chan string, cfg.QueueCapacity),
-		activeCancels:  make(map[string]context.CancelFunc),
-		stopCh:         make(chan struct{}),
+		projectReader:   cfg.ProjectReader,
+		projectResolver: cfg.ProjectResolver,
+		repo:            cfg.Repo,
+		renderer:        cfg.Renderer,
+		prober:          cfg.Prober,
+		objectStore:     cfg.ObjectStore,
+		scratchBaseDir:  cfg.ScratchBaseDir,
+		log:             cfg.Logger,
+		queue:           make(chan string, cfg.QueueCapacity),
+		activeCancels:   make(map[string]context.CancelFunc),
+		stopCh:          make(chan struct{}),
 	}
 
 	s.workerWg.Add(1)
@@ -132,7 +135,20 @@ func (s *Service) Submit(ctx context.Context, req ports.SubmitRequest) (domainEx
 		return domainExport.Job{}, err
 	}
 
-	state := s.projectReader.Get()
+	var reader ports.ProjectReader
+	if req.ProjectID != "" && s.projectResolver != nil {
+		r, err := s.projectResolver.ResolveReader(ctx, req.ProjectID)
+		if err != nil {
+			return domainExport.Job{}, fmt.Errorf("resolve project reader: %w", err)
+		}
+		reader = r
+	} else if s.projectReader != nil {
+		reader = s.projectReader
+	} else {
+		return domainExport.Job{}, fmt.Errorf("no project reader available")
+	}
+
+	state := reader.Get()
 
 	// Stale revision check (SD1 requirement)
 	if req.Revision != state.Revision {

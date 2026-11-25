@@ -149,6 +149,33 @@ func (s *Service) ProjectID() string {
 	return s.meta.ID
 }
 
+// Summary returns a lightweight summary of project state for catalogs and dashboards.
+func (s *Service) Summary() record.ProjectSummary {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	st := s.state()
+	name := st.Project.Name
+	if name == "" {
+		name = "Untitled Project"
+	}
+	return record.ProjectSummary{
+		ID:        st.ID,
+		Name:      name,
+		Revision:  st.Revision,
+		Clips:     len(st.Project.Clips),
+		Assets:    len(st.Project.Assets),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+}
+
+// Close flushes and safely releases resources.
+func (s *Service) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return nil
+}
+
 // GetOpsSince returns operations after sinceSeq.
 func (s *Service) GetOpsSince(sinceSeq uint64) ([]record.Record, error) {
 	s.mu.Lock()

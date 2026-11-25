@@ -8,6 +8,7 @@ import (
 
 // SubmitRequest contains parameters for creating an export job.
 type SubmitRequest struct {
+	ProjectID string          `json:"projectId,omitempty"`
 	RequestID string          `json:"requestId"`
 	Revision  uint64          `json:"revision"`
 	Settings  export.Settings `json:"settings"`

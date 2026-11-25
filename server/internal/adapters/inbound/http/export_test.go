@@ -17,25 +17,25 @@ import (
 )
 
 type mockExportService struct {
-	submitFunc func(context.Context, ports.SubmitRequest) (domainExport.Job, error)
-	getFunc    func(context.Context, string) (domainExport.Job, error)
-	cancelFunc func(context.Context, string) (domainExport.Job, error)
-	retryFunc  func(context.Context, string) (domainExport.Job, error)
-	dlFunc     func(context.Context, string) (string, error)
+	submitFunc func(ctx context.Context, req ports.SubmitRequest) (domainExport.Job, error)
+	getFunc    func(ctx context.Context, id string) (domainExport.Job, error)
+	cancelFunc func(ctx context.Context, id string) (domainExport.Job, error)
+	retryFunc  func(ctx context.Context, id string) (domainExport.Job, error)
+	dlFunc     func(ctx context.Context, id string) (string, error)
 }
 
 func (m *mockExportService) Submit(ctx context.Context, req ports.SubmitRequest) (domainExport.Job, error) {
 	if m.submitFunc != nil {
 		return m.submitFunc(ctx, req)
 	}
-	return domainExport.Job{ID: "job-123", Status: domainExport.JobStatusQueued}, nil
+	return domainExport.Job{ID: "job-123", RequestID: req.RequestID, Status: domainExport.JobStatusQueued}, nil
 }
 
 func (m *mockExportService) Get(ctx context.Context, id string) (domainExport.Job, error) {
 	if m.getFunc != nil {
 		return m.getFunc(ctx, id)
 	}
-	return domainExport.Job{ID: id, Status: domainExport.JobStatusCompleted}, nil
+	return domainExport.Job{ID: id, Status: domainExport.JobStatusRendering, Progress: 45.0}, nil
 }
 
 func (m *mockExportService) Cancel(ctx context.Context, id string) (domainExport.Job, error) {
@@ -64,7 +64,7 @@ func TestExportHTTPRoutes(t *testing.T) {
 	mockExp := &mockExportService{}
 	handler := httpadapter.New(nil, mockExp, nil, logger)
 
-	t.Run("POST /api/exports valid request", func(t *testing.T) {
+	t.Run("POST /api/projects/{projectId}/exports valid request", func(t *testing.T) {
 		payload := map[string]any{
 			"requestId":  "req-1",
 			"revision":   5,
@@ -75,7 +75,7 @@ func TestExportHTTPRoutes(t *testing.T) {
 			"method":     "server",
 		}
 		data, _ := json.Marshal(payload)
-		req := httptest.NewRequest(http.MethodPost, "/api/exports", bytes.NewReader(data))
+		req := httptest.NewRequest(http.MethodPost, "/api/projects/proj-1/exports", bytes.NewReader(data))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 
@@ -86,7 +86,7 @@ func TestExportHTTPRoutes(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /api/exports stale revision 409 conflict", func(t *testing.T) {
+	t.Run("POST /api/projects/{projectId}/exports stale revision 409 conflict", func(t *testing.T) {
 		mockExp.submitFunc = func(_ context.Context, _ ports.SubmitRequest) (domainExport.Job, error) {
 			return domainExport.Job{}, domErrors.ErrConflict
 		}
@@ -97,7 +97,7 @@ func TestExportHTTPRoutes(t *testing.T) {
 			"revision":  2,
 		}
 		data, _ := json.Marshal(payload)
-		req := httptest.NewRequest(http.MethodPost, "/api/exports", bytes.NewReader(data))
+		req := httptest.NewRequest(http.MethodPost, "/api/projects/proj-1/exports", bytes.NewReader(data))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
 
@@ -117,6 +117,14 @@ func TestExportHTTPRoutes(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
 		}
+
+		var job domainExport.Job
+		if err := json.NewDecoder(rec.Body).Decode(&job); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if job.ID != "job-123" || job.Status != domainExport.JobStatusRendering {
+			t.Fatalf("unexpected job response: %+v", job)
+		}
 	})
 
 	t.Run("POST /api/exports/{id}/cancel", func(t *testing.T) {
@@ -127,6 +135,12 @@ func TestExportHTTPRoutes(t *testing.T) {
 
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		var job domainExport.Job
+		_ = json.NewDecoder(rec.Body).Decode(&job)
+		if job.Status != domainExport.JobStatusCancelled {
+			t.Fatalf("expected cancelled, got %s", job.Status)
 		}
 	})
 
@@ -139,6 +153,12 @@ func TestExportHTTPRoutes(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
 		}
+
+		var job domainExport.Job
+		_ = json.NewDecoder(rec.Body).Decode(&job)
+		if job.Attempts != 2 {
+			t.Fatalf("expected 2 attempts, got %d", job.Attempts)
+		}
 	})
 
 	t.Run("GET /api/exports/{id}/download redirects", func(t *testing.T) {
@@ -148,11 +168,10 @@ func TestExportHTTPRoutes(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusTemporaryRedirect {
-			t.Fatalf("expected 307 Temporary Redirect, got %d: %s", rec.Code, rec.Body.String())
+			t.Fatalf("expected 307 redirect, got %d", rec.Code)
 		}
-		loc := rec.Header().Get("Location")
-		if loc != "https://minio.test/download/video.mp4" {
-			t.Fatalf("expected redirect to signed url, got %s", loc)
+		if rec.Header().Get("Location") != "https://minio.test/download/video.mp4" {
+			t.Fatalf("unexpected redirect: %s", rec.Header().Get("Location"))
 		}
 	})
 }

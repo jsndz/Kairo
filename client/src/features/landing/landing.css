@@ -1,0 +1,359 @@
+html:has(.landing-page) {
+  overscroll-behavior: none;
+}
+
+.landing-hero {
+  --landing-gutter: clamp(1.25rem, 3.6vw, 4rem);
+  --title-height: 1.17em;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  height: 100vh;
+  height: 100dvh;
+  overflow: clip;
+  touch-action: pinch-zoom;
+  background: radial-gradient(ellipse at center, var(--landing-light), var(--landing-backdrop) 75%);
+  color: var(--landing-text);
+}
+
+.landing-page :is(a, button):focus-visible {
+  outline: 2px solid var(--landing-accent);
+  outline-offset: 5px;
+}
+
+.landing-art-window,
+.landing-camera-dolly,
+.landing-reel-axis,
+.landing-reel,
+.landing-reel-face,
+.landing-art-window--backdrop .landing-scene-art,
+.landing-art-window--backdrop .landing-scene::after {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.landing-art-window {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.landing-art-window--backdrop {
+  z-index: -1;
+}
+
+.landing-art-window--cast {
+  z-index: 2;
+}
+
+.landing-camera {
+  --reel-radius: calc(100dvh * var(--landing-reel-radius-ratio));
+  position: absolute;
+  inset: 0 -5%;
+  perspective: 110dvh;
+}
+
+.landing-camera-dolly,
+.landing-reel-axis,
+.landing-reel {
+  transform-style: preserve-3d;
+}
+
+.landing-reel-axis {
+  transform: translateZ(calc(-1 * var(--reel-radius)));
+}
+
+.landing-reel-face {
+  transform: rotateX(var(--reel-face-angle)) translateZ(var(--reel-radius));
+  backface-visibility: hidden;
+}
+
+.landing-art-window--backdrop .landing-scene-art {
+  object-fit: cover;
+  object-position: var(--plate-position, center);
+}
+
+.landing-art-window--backdrop .landing-scene::after {
+  content: '';
+  background:
+    radial-gradient(ellipse at 50% 38%, transparent 23%, var(--plate-vignette) 90%),
+    var(--plate-wash);
+}
+
+.landing-scene[data-scene="bros"] {
+  --plate-position: 44% 50%;
+  --plate-vignette: rgb(16 8 5 / 65%);
+  --plate-wash: rgb(39 16 4 / 22%);
+  --cast-height: 67dvh;
+}
+
+.landing-scene[data-scene="lover"] {
+  --plate-position: 62% 50%;
+  --plate-vignette: rgb(30 12 28 / 37%);
+  --plate-wash: rgb(44 19 36 / 14%);
+  --cast-height: 63dvh;
+}
+
+.landing-scene[data-scene="boss"] {
+  --plate-vignette: rgb(6 14 15 / 63%);
+  --plate-wash: rgb(8 21 20 / 19%);
+  --cast-height: 59dvh;
+}
+
+.landing-art-window--cast .landing-scene-art {
+  position: absolute;
+  left: 50%;
+  bottom: -9dvh;
+  width: auto;
+  height: var(--cast-height);
+  max-width: none;
+  transform: translateX(-50%);
+}
+
+.landing-art-window--cast .landing-scene {
+  overflow: clip;
+}
+
+.landing-art-window--cast::after {
+  content: '';
+  position: absolute;
+  inset: 69% 0 0;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--landing-backdrop) 84%, transparent));
+}
+
+.landing-nav {
+  position: absolute;
+  inset: env(safe-area-inset-top) 0 auto;
+  z-index: 3;
+  color: var(--landing-nav-text);
+  text-shadow: 0 1px 10px rgb(7 9 6 / 65%);
+}
+
+.landing-nav-inner {
+  min-height: clamp(4.5rem, 8vw, 5.25rem);
+  margin-inline: var(--landing-gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--landing-nav-text) 26%, transparent);
+}
+
+.landing-wordmark,
+.landing-repo-link,
+.landing-button {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.landing-wordmark {
+  gap: .5rem;
+  font-size: 1.65rem;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: -.075em;
+}
+
+.landing-wordmark svg,
+.landing-repo-link:hover {
+  color: var(--landing-accent);
+}
+
+.landing-repo-link {
+  gap: .48rem;
+  min-height: 2.75rem;
+  font-size: .875rem;
+  font-weight: 550;
+}
+
+.landing-button {
+  justify-content: center;
+  gap: .55rem;
+  min-height: 2.75rem;
+  padding: .65rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 100vmax;
+  background: var(--landing-accent);
+  color: var(--landing-ink);
+  font-size: .875rem;
+  font-weight: 650;
+  text-shadow: none;
+}
+
+.landing-button:hover {
+  background: var(--landing-text);
+}
+
+.landing-headline {
+  position: absolute;
+  z-index: 1;
+  inset: clamp(5.75rem, 19dvh, 12rem) 0 auto;
+  text-align: center;
+  pointer-events: none;
+}
+
+.landing-headline-anchor {
+  display: block;
+  padding-inline: 1rem;
+  font-size: clamp(1.05rem, 2.25vw, 1.85rem);
+  font-weight: 520;
+  line-height: 1.18;
+  letter-spacing: -.035em;
+  text-shadow: 0 2px 18px rgb(8 5 5 / 64%);
+}
+
+.landing-word-window {
+  --reel-radius: calc(var(--title-height) * var(--landing-reel-radius-ratio));
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: var(--title-height);
+  perspective: 5em;
+  font-size: min(33vw, 34dvh, 23rem);
+  line-height: 1;
+}
+
+.landing-word-window .landing-reel-face {
+  display: grid;
+  place-items: center;
+}
+
+.landing-title {
+  display: block;
+  padding-inline: .13em;
+  line-height: .88;
+  white-space: nowrap;
+  text-shadow: 0 .016em .08em rgb(13 9 8 / 38%);
+}
+
+.landing-title[data-scene="bros"] {
+  color: #ffe1b3;
+  font-family: 'Barlow Condensed', Impact, sans-serif;
+  font-size: 1.16em;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: .015em;
+  text-transform: uppercase;
+}
+
+.landing-title[data-scene="lover"] {
+  color: #ffe0da;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.12em;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -.055em;
+}
+
+.landing-title[data-scene="boss"] {
+  color: #e0e8e1;
+  font-size: .94em;
+  font-weight: 780;
+  letter-spacing: -.085em;
+  text-transform: uppercase;
+}
+
+.landing-scene-hint {
+  font-size: clamp(.65rem, 1vw, .72rem);
+  font-weight: 650;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.landing-scene-controls {
+  position: absolute;
+  z-index: 3;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: clamp(.75rem, 2vw, 1.4rem);
+  color: var(--landing-nav-text);
+  text-shadow: 0 1px 8px #070906;
+}
+
+.landing-scene-status {
+  display: grid;
+  justify-items: center;
+  gap: .55rem;
+}
+
+.landing-scene-controls button {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--landing-accent) 66%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--landing-ink) 68%, transparent);
+  color: var(--landing-accent);
+  cursor: pointer;
+}
+
+.landing-scene-controls button:hover {
+  background: var(--landing-accent);
+  color: var(--landing-ink);
+}
+
+.landing-scene-progress {
+  display: flex;
+  gap: 5px;
+}
+
+.landing-scene-progress span {
+  width: 10px;
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--landing-nav-text) 50%, transparent);
+}
+
+.landing-scene-progress [data-current="true"] {
+  background: var(--landing-accent);
+}
+
+@media (max-aspect-ratio: 4/5) {
+  .landing-headline {
+    inset-block-start: clamp(6rem, 27dvh, 14.75rem);
+  }
+
+  .landing-word-window {
+    font-size: min(31vw, 26dvh);
+  }
+
+  .landing-art-window--cast .landing-scene-art {
+    bottom: 7.5dvh;
+    height: min(55dvh, 110vw);
+  }
+
+  .landing-art-window--cast::after {
+    inset-block-start: 73%;
+    background: linear-gradient(to bottom, transparent, var(--landing-backdrop) 72%);
+  }
+}
+
+@media (max-width: 34rem) {
+  .landing-nav .landing-repo-link {
+    min-width: 2.75rem;
+    justify-content: center;
+  }
+}
+
+@media (max-height: 30rem) and (min-aspect-ratio: 4/5) {
+  .landing-nav-inner {
+    min-height: 3.5rem;
+  }
+
+  .landing-headline {
+    inset-block-start: 16dvh;
+  }
+
+  .landing-headline-anchor {
+    font-size: clamp(.875rem, 4dvh, 1.05rem);
+  }
+
+  .landing-scene-controls {
+    bottom: max(.65rem, env(safe-area-inset-bottom));
+  }
+}

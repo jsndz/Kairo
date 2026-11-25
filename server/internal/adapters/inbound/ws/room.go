@@ -44,6 +44,13 @@ func (r *Room) CanJoin(clientID string) bool {
 	return r.session.CanJoin(clientID)
 }
 
+// ActiveUsersCount returns the number of currently connected clients in the room.
+func (r *Room) ActiveUsersCount() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.clients)
+}
+
 // Join adds a client connection with a random ID.
 func (r *Room) Join(conn *websocket.Conn) (*Client, error) {
 	return r.JoinWithID(conn, rand.Text())
@@ -66,8 +73,12 @@ func (r *Room) JoinWithID(conn *websocket.Conn, clientID string) (*Client, error
 	if err := r.session.Join(c.ID); err != nil {
 		r.mu.Lock()
 		delete(r.clients, c.ID)
+		remaining := len(r.clients)
 		r.mu.Unlock()
 		c.Close()
+		if remaining == 0 {
+			r.RoomEmpty(r.ID)
+		}
 		return nil, err
 	}
 
@@ -78,9 +89,13 @@ func (r *Room) JoinWithID(conn *websocket.Conn, clientID string) (*Client, error
 func (r *Room) Leave(c *Client) {
 	r.mu.Lock()
 	delete(r.clients, c.ID)
+	remaining := len(r.clients)
 	r.mu.Unlock()
 
 	r.session.Leave(c.ID)
+	if remaining == 0 {
+		r.RoomEmpty(r.ID)
+	}
 }
 
 // HandleMessage routes incoming WebSocket messages to the collaboration session.
