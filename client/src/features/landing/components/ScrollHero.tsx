@@ -1,14 +1,13 @@
 import type { CSSProperties } from 'react'
-import { reelRadiusRatio, scenes } from '../config/scenes'
+import { assetPath, scenes } from '../config/scenes'
 import { useHeroAnimation } from '../hooks/useHeroAnimation'
 import { Headline } from './Headline'
 import { Navbar } from './Navbar'
-import { PosterReel } from './PosterReel'
 import { SceneControls } from './SceneControls'
+import { SceneTrack } from './SceneTrack'
 
 const initialStyle = {
-  ...scenes[0].theme,
-  '--landing-reel-radius-ratio': reelRadiusRatio,
+  '--landing-accent': scenes[0].accent,
 } as CSSProperties
 
 export function ScrollHero() {
@@ -20,10 +19,21 @@ export function ScrollHero() {
       ref={heroRef}
       style={initialStyle}
     >
-      <PosterReel layer="backdrop" />
-      <Headline activeWord={scenes[activeIndex].word} />
-      <PosterReel layer="cast" />
+      <SceneTrack />
       <Navbar />
+      <div className="landing-product">
+        <Headline activeWord={scenes[activeIndex].word} />
+        <p className="landing-description">
+          A real-time collaborative video editor for two. Share a timeline and make every cut together.
+        </p>
+        <img
+          className="landing-editor-preview"
+          src={`${assetPath}editor.webp`}
+          alt="Kairo editor showing a video preview, clip controls and a shared editing timeline"
+          width={1440}
+          height={900}
+        />
+      </div>
       <SceneControls activeIndex={activeIndex} moveScene={moveScene} />
     </main>
   )

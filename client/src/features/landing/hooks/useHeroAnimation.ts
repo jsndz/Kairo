@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { Observer } from 'gsap/Observer'
-import { reelFaces, reelStep, scenes } from '../config/scenes'
+import { scenes } from '../config/scenes'
 
 gsap.registerPlugin(useGSAP, Observer)
 
@@ -17,16 +17,13 @@ export function useHeroAnimation() {
     const hero = heroRef.current
     if (!hero) return
 
-    const backdrop = hero.querySelector('[data-camera="backdrop"]')
-    const cast = hero.querySelector('[data-camera="cast"]')
-    if (!backdrop || !cast) return
-
-    const reels = hero.querySelectorAll('.landing-reel')
-    const backdropFrames = backdrop.querySelectorAll('.landing-scene-art')
-    const castFrames = cast.querySelectorAll('.landing-scene-art')
-    const wrapFace = gsap.utils.wrap(0, reelFaces.length)
+    const slides = scenes.map(scene => ({
+      panels: hero.querySelectorAll<HTMLElement>(`[data-slide="${scene.id}"]`),
+      backdrop: hero.querySelector<HTMLElement>(`[data-slide="${scene.id}"] .landing-scene-backdrop`),
+    }))
+    const wrap = gsap.utils.wrap(0, scenes.length)
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    let turn = 0
+    let currentIndex = 0
     let transition: gsap.core.Timeline | null = null
     let wheelConsumed = false
     let swipeStartedDuringTransition = false
@@ -34,53 +31,42 @@ export function useHeroAnimation() {
     const move = (direction: Direction) => {
       if (transition) return
 
-      const nextTurn = turn + direction
-      const nextFace = wrapFace(nextTurn)
-      const next = nextFace % scenes.length
-      // Keep the rotation continuous across both ends of the scene list.
-      const angle = nextTurn * reelStep
-      const theme = scenes[next].theme
+      const nextIndex = wrap(currentIndex + direction)
+      const outgoing = slides[currentIndex]
+      const incoming = slides[nextIndex]
+      const accent = { '--landing-accent': scenes[nextIndex].accent }
+      const updateScene = () => {
+        currentIndex = nextIndex
+        setActiveIndex(nextIndex)
+      }
 
       if (reducedMotion.matches) {
-        gsap.set(reels, { rotationX: angle })
-        gsap.set(hero, theme)
-        turn = nextTurn
-        setActiveIndex(next)
+        gsap.set(outgoing.panels, { visibility: 'hidden' })
+        gsap.set(incoming.panels, { visibility: 'visible', yPercent: 0 })
+        gsap.set(incoming.backdrop, { yPercent: 0 })
+        gsap.set(hero, accent)
+        updateScene()
         return
       }
 
-      const backdropDepth = -hero.clientHeight * 0.67
-      const castDepth = backdropDepth * 0.88
-      const currentFace = wrapFace(turn)
-      const rollingArt = [
-        backdropFrames[currentFace], backdropFrames[nextFace],
-        castFrames[currentFace], castFrames[nextFace],
-      ]
-      transition = gsap.timeline({
-        onComplete: () => {
-          turn = nextTurn
-          transition = null
-        },
-      })
+      const duration = 0.8
+      const distance = 100 * direction
+      // Counter the panel travel slightly so the background moves more slowly than the cast.
+      const parallax = 7 * direction
+      gsap.set(incoming.panels, { visibility: 'visible', yPercent: distance })
+      gsap.set(incoming.backdrop, { yPercent: -parallax })
 
-      transition
-        .to(backdrop, { z: backdropDepth, duration: 0.32, ease: 'power2.inOut' }, 0)
-        .to(cast, { z: castDepth, yPercent: direction * 1.5, duration: 0.32, ease: 'power2.inOut' }, 0)
-        .addLabel('roll', '+=0.03')
-        .to(reels, { rotationX: angle + direction * 4.6, duration: 0.52, ease: 'power3.inOut' }, 'roll')
-        .to(cast, { yPercent: -direction * 1.5, duration: 0.52, ease: 'power3.inOut' }, 'roll')
-        .to(hero, { ...theme, duration: 0.36, ease: 'sine.inOut' }, 'roll+=0.09')
-        .to(rollingArt, { filter: 'blur(3px)', duration: 0.16, ease: 'power2.in' }, 'roll+=0.09')
-        .to(rollingArt, { filter: 'blur(0px)', duration: 0.19, ease: 'power2.out' }, 'roll+=0.25')
-        .set(rollingArt, { clearProps: 'filter' }, 'roll+=0.44')
-        .addLabel('catch', 'roll+=0.52')
-        .to(reels, { rotationX: angle - direction * 1.2, duration: 0.075, ease: 'power2.in' }, 'catch')
-        .to(reels, { rotationX: angle, duration: 0.095, ease: 'power2.out' }, 'catch+=0.075')
-        .to(backdrop, { z: backdropDepth * 0.94, duration: 0.075, ease: 'power2.out' }, 'catch')
-        .to(backdrop, { z: backdropDepth, duration: 0.095, ease: 'power2.inOut' }, 'catch+=0.075')
-        .addLabel('push', 'catch+=0.17')
-        .call(() => setActiveIndex(next), [], 'push')
-        .to([backdrop, cast], { z: 0, yPercent: 0, duration: 0.44, ease: 'power3.inOut' }, 'push')
+      transition = gsap.timeline({
+        defaults: { duration, ease: 'power3.inOut' },
+        onComplete: () => { transition = null },
+      })
+        .to(outgoing.panels, { yPercent: -distance }, 0)
+        .to(incoming.panels, { yPercent: 0 }, 0)
+        .to(outgoing.backdrop, { yPercent: parallax }, 0)
+        .to(incoming.backdrop, { yPercent: 0 }, 0)
+        .to(hero, accent, 0)
+        .call(updateScene, [], duration / 2)
+        .set(outgoing.panels, { visibility: 'hidden' }, duration)
     }
 
     moveRef.current = move

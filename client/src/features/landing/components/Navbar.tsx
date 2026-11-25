@@ -9,7 +9,7 @@ export function Navbar() {
           <Aperture size={23} aria-hidden="true" />
           Kairo
         </a>
-        <div className="flex items-center gap-4 sm:gap-7">
+        <div className="landing-nav-actions">
           {repositoryUrl && (
             <a className="landing-repo-link" href={repositoryUrl} aria-label="Kairo on GitHub">
               <GitFork size={17} aria-hidden="true" />

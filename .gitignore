@@ -2,4 +2,5 @@ docs
 plan.md
 server/data/
 .agent
-client/public
+*.json
+*.txt

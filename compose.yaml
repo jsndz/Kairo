@@ -11,5 +11,23 @@ services:
       - "127.0.0.1:9001:9001"
     volumes:
       - kairo-media:/data
+
+  benchmarks:
+    build:
+      context: .
+      dockerfile: infra/benchmarks/Dockerfile
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+    environment:
+      - GOMAXPROCS=2
+      - GOTOOLCHAIN=auto
+    command: ./bench.sh report
+    profiles: ["bench"]
 volumes:
   kairo-media:
