@@ -66,6 +66,7 @@ func TestExportHTTPRoutes(t *testing.T) {
 
 	t.Run("POST /api/projects/{projectId}/exports valid request", func(t *testing.T) {
 		payload := map[string]any{
+			"projectId":  "proj-1",
 			"requestId":  "req-1",
 			"revision":   5,
 			"filename":   "final.mp4",

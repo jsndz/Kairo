@@ -11,7 +11,6 @@ import (
 	"time"
 
 	catalogStorage "server/internal/adapters/outbound/storage/catalog"
-	"server/internal/adapters/outbound/storage/fs"
 	"server/internal/adapters/outbound/storage/jsonl"
 	"server/internal/domain/asset"
 	"server/internal/domain/record"
@@ -204,56 +203,6 @@ func (m *Manager) Touch(id string) {
 // ResolveReader implements ports.ProjectResolver.
 func (m *Manager) ResolveReader(ctx context.Context, projectID string) (ports.ProjectReader, error) {
 	return m.Get(ctx, projectID)
-}
-
-// MigrateLegacy checks for a root metadata.json and operations.jsonl and migrates them into projects/{id}/.
-func (m *Manager) MigrateLegacy(legacyDataDir string) error {
-	metaPath := filepath.Join(legacyDataDir, "metadata.json")
-	opsPath := filepath.Join(legacyDataDir, "operations.jsonl")
-
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		return nil // No legacy files to migrate
-	}
-
-	cat := catalogStorage.JSONCatalog{Path: metaPath}
-	meta, err := cat.Read()
-	if err != nil || meta.ID == "" {
-		return nil // Invalid or unreadable metadata
-	}
-
-	projDir := filepath.Join(m.projectsDir, meta.ID)
-	if err := os.MkdirAll(projDir, 0700); err != nil {
-		return fmt.Errorf("create legacy migrated project dir: %w", err)
-	}
-
-	destMeta := filepath.Join(projDir, "metadata.json")
-	destOps := filepath.Join(projDir, "operations.jsonl")
-
-	if err := os.Rename(metaPath, destMeta); err != nil {
-		return fmt.Errorf("migrate legacy metadata.json: %w", err)
-	}
-	if _, err := os.Stat(opsPath); err == nil {
-		if err := os.Rename(opsPath, destOps); err != nil {
-			return fmt.Errorf("migrate legacy operations.jsonl: %w", err)
-		}
-	}
-
-	_ = fs.SyncDir(projDir)
-	_ = fs.SyncDir(legacyDataDir)
-
-	// Load and record in index
-	svc, err := Open(
-		catalogStorage.JSONCatalog{Path: destMeta},
-		jsonl.JSONL{Path: destOps},
-		m.objects,
-		m.maxUpload,
-	)
-	if err == nil {
-		summary := svc.Summary()
-		_ = m.indexStore.Upsert(summary)
-	}
-
-	return nil
 }
 
 // EvictIdle unloads projects from memory that have been inactive longer than timeout.

@@ -200,9 +200,16 @@ func (a *API) handleCreateExportByProject(w nethttp.ResponseWriter, r *nethttp.R
 		return
 	}
 
+	if projID == "" && body.ProjectID != "" {
+		projID = body.ProjectID
+	}
+
 	settings := domainExport.DefaultSettings()
 	if body.Settings != nil {
 		settings = *body.Settings
+		if settings.Method == "" {
+			settings.Method = domainExport.MethodServer
+		}
 	} else {
 		if body.Format != "" {
 			settings.Format = body.Format

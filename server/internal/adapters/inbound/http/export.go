@@ -7,6 +7,7 @@ import (
 )
 
 type createExportRequest struct {
+	ProjectID  string                  `json:"projectId,omitempty"`
 	RequestID  string                  `json:"requestId"`
 	Revision   uint64                  `json:"revision"`
 	Settings   *domainExport.Settings  `json:"settings,omitempty"`

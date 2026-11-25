@@ -36,7 +36,11 @@ func (a *API) read(w nethttp.ResponseWriter, r *nethttp.Request, dst any) bool {
 
 	decoder := json.NewDecoder(nethttp.MaxBytesReader(w, r.Body, maxRequestBodyBytes))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(dst); err != nil || decoder.Decode(new(any)) != io.EOF {
+	if err := decoder.Decode(dst); err != nil {
+		a.reply(w, r, 0, nil, err)
+		return false
+	}
+	if decoder.Decode(new(any)) != io.EOF {
 		a.reply(w, r, 0, nil, domErrors.ErrInvalid)
 		return false
 	}
@@ -45,16 +49,20 @@ func (a *API) read(w nethttp.ResponseWriter, r *nethttp.Request, dst any) bool {
 
 func (a *API) reply(w nethttp.ResponseWriter, r *nethttp.Request, status int, data any, err error) {
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		var statusCode int
 		switch {
 		case errors.Is(err, domErrors.ErrNotFound):
-			nethttp.Error(w, `{"error":"not found"}`, nethttp.StatusNotFound)
+			statusCode = nethttp.StatusNotFound
 		case errors.Is(err, domErrors.ErrConflict):
-			nethttp.Error(w, `{"error":"conflict"}`, nethttp.StatusConflict)
+			statusCode = nethttp.StatusConflict
 		case errors.Is(err, domErrors.ErrUnavailable):
-			nethttp.Error(w, `{"error":"storage unavailable"}`, nethttp.StatusServiceUnavailable)
+			statusCode = nethttp.StatusServiceUnavailable
 		default:
-			nethttp.Error(w, `{"error":"invalid request"}`, nethttp.StatusUnprocessableEntity)
+			statusCode = nethttp.StatusUnprocessableEntity
 		}
+		w.WriteHeader(statusCode)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 

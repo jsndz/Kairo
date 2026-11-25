@@ -72,11 +72,6 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("initialize project manager: %w", err)
 	}
 
-	// Automatically migrate legacy single-project files if present
-	if err := projMgr.MigrateLegacy(data); err != nil {
-		logger.Warn("legacy project migration notice", "error", err)
-	}
-
 	// Ensure at least one project exists
 	projList, err := projMgr.List(context.Background())
 	if err == nil && len(projList) == 0 {
