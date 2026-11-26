@@ -4,3 +4,4 @@ server/data/
 .agent
 *.json
 *.txt
+/benchmarks/results/history

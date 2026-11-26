@@ -9,9 +9,26 @@ COMMAND="${1:-help}"
 shift || true
 
 case "$COMMAND" in
-    report)
-        echo "==> Running Standardized Isolated Benchmark Suite & Generating Artifacts..."
-        cd server && go run ./cmd/bench-suite "$@"
+    all|bench-all|report)
+        RUN_NAME="${1:-${NAME:-}}"
+        if [ -n "$RUN_NAME" ]; then
+            shift || true
+        fi
+        if [ -z "$RUN_NAME" ]; then
+            if [ -t 0 ]; then
+                read -r -p "Enter benchmark run/feature name (e.g. initial_jsonl, sqlite_migration, batch_export): " RUN_NAME
+            fi
+        fi
+        RUN_NAME="${RUN_NAME:-run_$(date +%Y%m%d_%H%M%S)}"
+        echo "==> Running Complete Standardized Benchmark Suite for: $RUN_NAME..."
+        export GOMAXPROCS=2
+        if command -v taskset >/dev/null 2>&1; then
+            echo "==> Enforcing standardized 2-vCPU hardware core isolation (taskset -c 0,1, GOMAXPROCS=2)..."
+            cd server && taskset -c 0,1 go run ./cmd/bench-suite --name="$RUN_NAME" "$@"
+        else
+            echo "==> Enforcing standardized 2-vCPU scheduler limits (GOMAXPROCS=2)..."
+            cd server && go run ./cmd/bench-suite --name="$RUN_NAME" "$@"
+        fi
         ;;
     bench|component)
         echo "==> Running Tier 1 Component Microbenchmarks (Go testing.B)..."
@@ -32,6 +49,14 @@ case "$COMMAND" in
         echo "==> Running benchmarks under standardized 2-vCPU pinned core profile..."
         GOMAXPROCS=2 taskset -c 0,1 go test -bench=. -benchmem -count=5 ./server/benchmarks/... "$@"
         ;;
+    docker)
+        echo "==> Running benchmarks inside Docker cgroups container..."
+        make bench-docker
+        ;;
+    k6|bench-k6)
+        echo "==> Running k6 external load/stress tests..."
+        make bench-k6
+        ;;
     load|bench-load)
         echo "==> Running Tier 2 WebSocket Live Collaboration Load Test..."
         cd server && go run ./cmd/bench-load "$@"
@@ -47,10 +72,6 @@ case "$COMMAND" in
     frontend|bench-frontend)
         echo "==> Running Frontend Engine Performance Benchmarks..."
         cd client && npm run bench
-        ;;
-    all|bench-all)
-        echo "==> Running Complete Application Benchmark & Load Suite..."
-        make bench-all
         ;;
     stress)
         echo "==> Running Concurrency & Crash Recovery Stress Tests..."

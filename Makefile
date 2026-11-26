@@ -1,5 +1,5 @@
 # Kairo Performance Benchmarking, Load & Stress Suite
-.PHONY: bench bench-export bench-load bench-load-quick bench-frontend bench-all bench-isolated bench-docker report baseline compare stress race test help
+.PHONY: bench bench-export bench-load bench-load-quick bench-frontend bench-all bench-isolated bench-docker bench-k6 report baseline compare stress race test help
 
 help:
 	@echo "Kairo Complete Application Benchmarking & Testing Suite:"
@@ -9,6 +9,7 @@ help:
 	@echo "  make compare           Statistically compare current run against baseline_jsonl.txt"
 	@echo "  make bench-isolated    Run benchmarks under standardized server profile (2 vCPUs, GOMAXPROCS=2, core-pinned)"
 	@echo "  make bench-docker      Run benchmarks inside Docker container with hard cgroup limits (2.0 CPU, 1GB RAM)"
+	@echo "  make bench-k6          Run external Grafana k6 REST & WebSocket stress scripts (via local k6 or Docker)"
 	@echo "  make bench-load        Run Tier 2 WebSocket live collaboration load test (100 rooms, 500 ops/sec, 30s)"
 	@echo "  make bench-load-quick  Run quick Tier 2 load test (10 rooms, 100 ops/sec, 5s)"
 	@echo "  make bench-export      Run backend Export subsystem load test (20 jobs, concurrency 5)"
@@ -19,7 +20,7 @@ help:
 	@echo "  make test              Run all unit & domain tests (backend and frontend)"
 
 report:
-	cd server && go run ./cmd/bench-suite
+	@./bench.sh all $(NAME)
 
 bench:
 	cd server && go test -bench=. -benchmem -v ./benchmarks/...
@@ -44,6 +45,20 @@ bench-isolated:
 
 bench-docker:
 	docker compose --profile bench run --rm benchmarks
+
+bench-k6:
+	@if command -v k6 >/dev/null 2>&1; then \
+		echo "==> Running k6 REST API test with local k6..."; \
+		k6 run benchmarks/k6/rest_api_stress.js; \
+		echo "==> Running k6 WebSocket test with local k6..."; \
+		k6 run benchmarks/k6/websocket_stress.js; \
+	elif command -v docker >/dev/null 2>&1; then \
+		echo "==> k6 not found locally; running via official grafana/k6 Docker container..."; \
+		docker run --rm -i --network=host -v "$$(pwd)/benchmarks/k6:/scripts" grafana/k6 run /scripts/rest_api_stress.js; \
+		docker run --rm -i --network=host -v "$$(pwd)/benchmarks/k6:/scripts" grafana/k6 run /scripts/websocket_stress.js; \
+	else \
+		echo "Error: Neither k6 nor docker is installed to run k6 scripts."; exit 1; \
+	fi
 
 bench-load:
 	cd server && go run ./cmd/bench-load \
@@ -74,20 +89,7 @@ bench-frontend:
 	cd client && npm run bench
 
 bench-all:
-	@echo "================================================================================"
-	@echo "                 STARTING FULL APPLICATION BENCHMARK SUITE                      "
-	@echo "================================================================================"
-	@echo "\n[1/4] Running Tier 1 Component Microbenchmarks..."
-	@cd server && go test -bench=. -benchmem -benchtime=50ms ./benchmarks/...
-	@echo "\n[2/4] Running Frontend Engine Performance Benchmarks..."
-	@cd client && npm run bench
-	@echo "\n[3/4] Running Backend Export Subsystem Load Test..."
-	@cd server && go run ./cmd/bench-export --projects=20 --concurrency=5
-	@echo "\n[4/4] Running Real-Time WebSocket Load Test..."
-	@cd server && go run ./cmd/bench-load --rooms=20 --peers=2 --rate=100 --duration=5s
-	@echo "================================================================================"
-	@echo "                      FULL BENCHMARK SUITE COMPLETED                            "
-	@echo "================================================================================"
+	@./bench.sh all $(NAME)
 
 stress:
 	cd server && go test -v -race ./benchmarks -run=TestStress
