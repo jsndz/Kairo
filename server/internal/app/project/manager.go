@@ -10,8 +10,7 @@ import (
 	"sync"
 	"time"
 
-	catalogStorage "server/internal/adapters/outbound/storage/catalog"
-	"server/internal/adapters/outbound/storage/jsonl"
+	sqliteStorage "server/internal/adapters/outbound/storage/sqlite"
 	"server/internal/domain/asset"
 	"server/internal/domain/record"
 	"server/internal/domain/timeline"
@@ -27,7 +26,7 @@ var (
 type Manager struct {
 	mu          sync.RWMutex
 	projectsDir string
-	indexStore  *catalogStorage.ProjectIndexStore
+	indexStore  ports.ProjectIndexRepository
 	objects     ports.ObjectStore
 	maxUpload   int64
 
@@ -41,8 +40,12 @@ func NewManager(projectsDir string, objects ports.ObjectStore, maxUpload int64) 
 		return nil, fmt.Errorf("create projects directory: %w", err)
 	}
 
-	indexPath := filepath.Join(projectsDir, "index.json")
-	indexStore := catalogStorage.NewProjectIndexStore(indexPath)
+	indexDBPath := filepath.Join(projectsDir, "index.db")
+
+	indexStore, err := sqliteStorage.OpenIndex(indexDBPath)
+	if err != nil {
+		return nil, fmt.Errorf("open project index db: %w", err)
+	}
 
 	return &Manager{
 		projectsDir: projectsDir,
@@ -54,8 +57,8 @@ func NewManager(projectsDir string, objects ports.ObjectStore, maxUpload int64) 
 	}, nil
 }
 
-// List returns summaries for all available projects, refreshing any active in-memory states.
-func (m *Manager) List(ctx context.Context) ([]record.ProjectSummary, error) {
+// List returns metadata for all available projects, refreshing any active in-memory states.
+func (m *Manager) List(ctx context.Context) ([]record.ProjectMetadata, error) {
 	summaries, err := m.indexStore.Read()
 	if err != nil {
 		return nil, fmt.Errorf("read project index: %w", err)
@@ -67,7 +70,7 @@ func (m *Manager) List(ctx context.Context) ([]record.ProjectSummary, error) {
 	// Update summaries with live state if active in memory
 	for i, s := range summaries {
 		if activeSvc, ok := m.active[s.ID]; ok {
-			live := activeSvc.Summary()
+			live := activeSvc.Metadata()
 			summaries[i].Name = live.Name
 			summaries[i].Revision = live.Revision
 			summaries[i].Clips = live.Clips
@@ -80,7 +83,7 @@ func (m *Manager) List(ctx context.Context) ([]record.ProjectSummary, error) {
 }
 
 // Create generates a new project directory, initializes metadata & log, and returns an active service.
-func (m *Manager) Create(ctx context.Context, name string) (record.ProjectSummary, ports.ProjectInstance, error) {
+func (m *Manager) Create(ctx context.Context, name string) (record.ProjectMetadata, ports.ProjectInstance, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -91,34 +94,43 @@ func (m *Manager) Create(ctx context.Context, name string) (record.ProjectSummar
 	id := rand.Text()
 	projDir := filepath.Join(m.projectsDir, id)
 	if err := os.MkdirAll(projDir, 0700); err != nil {
-		return record.ProjectSummary{}, nil, fmt.Errorf("create project dir: %w", err)
+		return record.ProjectMetadata{}, nil, fmt.Errorf("create project dir: %w", err)
 	}
 
-	cat := catalogStorage.JSONCatalog{Path: filepath.Join(projDir, "metadata.json")}
-	if err := cat.Save(record.Metadata{
+	dbPath := filepath.Join(projDir, "project.db")
+	pdb, err := sqliteStorage.OpenProject(dbPath)
+	if err != nil {
+		return record.ProjectMetadata{}, nil, fmt.Errorf("open new project db: %w", err)
+	}
+
+	if err := pdb.Catalog().Save(record.Metadata{
 		ID:     id,
 		Assets: make(map[string]asset.Asset),
 	}); err != nil {
-		return record.ProjectSummary{}, nil, fmt.Errorf("initialize project metadata: %w", err)
+		_ = pdb.Close()
+		return record.ProjectMetadata{}, nil, fmt.Errorf("initialize project metadata: %w", err)
 	}
-	lg := jsonl.JSONL{Path: filepath.Join(projDir, "operations.jsonl")}
 
-	svc, err := Open(cat, lg, m.objects, m.maxUpload)
+	svc, err := Open(pdb.Catalog(), pdb.Log(), m.objects, m.maxUpload)
 	if err != nil {
-		return record.ProjectSummary{}, nil, fmt.Errorf("open new project: %w", err)
+		_ = pdb.Close()
+		return record.ProjectMetadata{}, nil, fmt.Errorf("open new project: %w", err)
 	}
 
 	// Set initial project name if specified
-	if name != "Untitled Project" {
+	if name != "Untitled Project" && name != "" {
 		payload, _ := json.Marshal(map[string]string{"name": name})
+		initRev := uint64(0)
 		_, _ = svc.Commit(timeline.Edit{
-			Type:    "rename",
-			Payload: payload,
+			ID:               "init-rename",
+			Type:             "rename",
+			Payload:          payload,
+			ExpectedRevision: &initRev,
 		})
 	}
 
 	now := time.Now().UTC()
-	summary := record.ProjectSummary{
+	summary := record.ProjectMetadata{
 		ID:        id,
 		Name:      name,
 		Revision:  svc.Get().Revision,
@@ -129,7 +141,7 @@ func (m *Manager) Create(ctx context.Context, name string) (record.ProjectSummar
 	}
 
 	if err := m.indexStore.Upsert(summary); err != nil {
-		return record.ProjectSummary{}, nil, fmt.Errorf("save project index: %w", err)
+		return record.ProjectMetadata{}, nil, fmt.Errorf("save project index: %w", err)
 	}
 
 	m.active[id] = svc
@@ -149,19 +161,22 @@ func (m *Manager) Get(ctx context.Context, id string) (ports.ProjectInstance, er
 		return svc, nil
 	}
 
-	// 2. Verify project directory exists on disk
+	// 2. Verify project database exists on disk
 	projDir := filepath.Join(m.projectsDir, id)
-	metaPath := filepath.Join(projDir, "metadata.json")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
+	dbPath := filepath.Join(projDir, "project.db")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("project %q not found", id)
 	}
 
-	// 3. Open project
-	cat := catalogStorage.JSONCatalog{Path: metaPath}
-	lg := jsonl.JSONL{Path: filepath.Join(projDir, "operations.jsonl")}
-
-	svc, err := Open(cat, lg, m.objects, m.maxUpload)
+	// 3. Open project SQLite database
+	pdb, err := sqliteStorage.OpenProject(dbPath)
 	if err != nil {
+		return nil, fmt.Errorf("load project db %q: %w", id, err)
+	}
+
+	svc, err := Open(pdb.Catalog(), pdb.Log(), m.objects, m.maxUpload)
+	if err != nil {
+		_ = pdb.Close()
 		return nil, fmt.Errorf("load project %q from disk: %w", id, err)
 	}
 
@@ -170,7 +185,7 @@ func (m *Manager) Get(ctx context.Context, id string) (ports.ProjectInstance, er
 	m.lastActive[id] = now
 
 	// Update index with current name/revision
-	summary := svc.Summary()
+	summary := svc.Metadata()
 	_ = m.indexStore.Upsert(summary)
 
 	return svc, nil
@@ -223,4 +238,19 @@ func (m *Manager) EvictIdle(timeout time.Duration, isBusy func(projectID string)
 			}
 		}
 	}
+}
+
+// Close flushes and shuts down the global index store.
+func (m *Manager) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for id, svc := range m.active {
+		_ = svc.Close()
+		delete(m.active, id)
+	}
+	if m.indexStore != nil {
+		return m.indexStore.Close()
+	}
+	return nil
 }

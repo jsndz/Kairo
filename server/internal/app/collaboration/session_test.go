@@ -75,10 +75,10 @@ func (m *mockProjectService) ProjectID() string {
 	return "proj-test"
 }
 
-func (m *mockProjectService) Summary() record.ProjectSummary {
+func (m *mockProjectService) Metadata() record.ProjectMetadata {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return record.ProjectSummary{
+	return record.ProjectMetadata{
 		ID:       m.state.ID,
 		Name:     m.state.Project.Name,
 		Revision: m.state.Revision,

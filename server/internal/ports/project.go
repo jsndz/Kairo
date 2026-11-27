@@ -28,7 +28,7 @@ type ProjectReader interface {
 	Get() State
 	GetOpsSince(seq uint64) ([]record.Record, error)
 	ProjectID() string
-	Summary() record.ProjectSummary
+	Metadata() record.ProjectMetadata
 }
 
 // OperationCommitter validates and applies timeline mutations.
@@ -43,5 +43,4 @@ type ProjectService interface {
 	OperationCommitter
 }
 
-// OperationService aliases OperationCommitter for interface segregation.
-type OperationService = OperationCommitter
+

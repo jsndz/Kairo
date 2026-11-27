@@ -1,6 +1,9 @@
 docs
 plan.md
 server/data/
+*.db
+*.db-wal
+*.db-shm
 .agent
 *.json
 *.txt

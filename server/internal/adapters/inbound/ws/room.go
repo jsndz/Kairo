@@ -99,12 +99,12 @@ func (r *Room) Leave(c *Client) {
 }
 
 // HandleMessage routes incoming WebSocket messages to the collaboration session.
-func (r *Room) HandleMessage(c *Client, msg InMessage) {
+func (r *Room) HandleMessage(c *Client, msg collaboration.InMessage) {
 	r.session.HandleMessage(c.ID, msg)
 }
 
 // Broadcast implements collaboration.SessionEmitter.
-func (r *Room) Broadcast(msg OutMessage) {
+func (r *Room) Broadcast(msg collaboration.OutMessage) {
 	raw, err := json.Marshal(msg)
 	if err != nil {
 		return
@@ -118,7 +118,7 @@ func (r *Room) Broadcast(msg OutMessage) {
 }
 
 // BroadcastExcept implements collaboration.SessionEmitter.
-func (r *Room) BroadcastExcept(excludeID string, msg OutMessage) {
+func (r *Room) BroadcastExcept(excludeID string, msg collaboration.OutMessage) {
 	raw, err := json.Marshal(msg)
 	if err != nil {
 		return
@@ -134,7 +134,7 @@ func (r *Room) BroadcastExcept(excludeID string, msg OutMessage) {
 }
 
 // SendToClient implements collaboration.SessionEmitter.
-func (r *Room) SendToClient(clientID string, msg OutMessage) {
+func (r *Room) SendToClient(clientID string, msg collaboration.OutMessage) {
 	r.mu.RLock()
 	client, ok := r.clients[clientID]
 	r.mu.RUnlock()

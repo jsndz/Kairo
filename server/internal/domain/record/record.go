@@ -34,3 +34,21 @@ type Catalog interface {
 	Read() (Metadata, error)
 	Save(Metadata) error
 }
+
+// Snapshot is a materialized timeline state checkpoint at a specific sequence.
+type Snapshot struct {
+	Sequence  uint64          `json:"sequence"`
+	State     json.RawMessage `json:"state"`
+	Timestamp time.Time       `json:"timestamp"`
+}
+
+// SnapshotStore defines persistence for materialized project state checkpoints.
+type SnapshotStore interface {
+	GetLatestSnapshot() (*Snapshot, error)
+	SaveSnapshot(sequence uint64, state json.RawMessage) error
+}
+
+// DeltaLogReader extends operation log with range queries.
+type DeltaLogReader interface {
+	ReadSince(sinceSeq uint64) ([]Record, error)
+}

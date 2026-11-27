@@ -154,7 +154,7 @@ func NewRoomSession(id string, svc ports.ProjectService, emitter SessionEmitter)
 		emitter:            emitter,
 	}
 
-	s.consensus.SetTimeoutCallback(func(p *Proposal) {
+	s.consensus.SetTimeoutCallback(func(p *ports.Proposal) {
 		approved := false
 		s.Broadcast(OutMessage{
 			Type:       "consensus_resolved",

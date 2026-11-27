@@ -2,8 +2,8 @@ package record
 
 import "time"
 
-// ProjectSummary provides lightweight project metadata for catalog listing and dashboards.
-type ProjectSummary struct {
+// ProjectMetadata provides lightweight project metadata for catalog listing and dashboards.
+type ProjectMetadata struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Revision  uint64    `json:"revision"`
@@ -12,3 +12,5 @@ type ProjectSummary struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
+
+

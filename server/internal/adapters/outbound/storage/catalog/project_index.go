@@ -23,19 +23,19 @@ func NewProjectIndexStore(path string) *ProjectIndexStore {
 }
 
 // Read returns all project summaries from disk. If the file does not exist, it returns an empty slice.
-func (s *ProjectIndexStore) Read() ([]record.ProjectSummary, error) {
+func (s *ProjectIndexStore) Read() ([]record.ProjectMetadata, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	b, err := os.ReadFile(s.path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return []record.ProjectSummary{}, nil
+			return []record.ProjectMetadata{}, nil
 		}
 		return nil, err
 	}
 
-	var summaries []record.ProjectSummary
+	var summaries []record.ProjectMetadata
 	if err := json.Unmarshal(b, &summaries); err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (s *ProjectIndexStore) Read() ([]record.ProjectSummary, error) {
 }
 
 // Save writes project summaries atomically to disk.
-func (s *ProjectIndexStore) Save(summaries []record.ProjectSummary) error {
+func (s *ProjectIndexStore) Save(summaries []record.ProjectMetadata) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -77,7 +77,7 @@ func (s *ProjectIndexStore) Save(summaries []record.ProjectSummary) error {
 }
 
 // Upsert adds or updates a project summary in the index.
-func (s *ProjectIndexStore) Upsert(summary record.ProjectSummary) error {
+func (s *ProjectIndexStore) Upsert(summary record.ProjectMetadata) error {
 	summaries, err := s.Read()
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (s *ProjectIndexStore) Upsert(summary record.ProjectSummary) error {
 	}
 	if !found {
 		// Prepend new project so newest appears first
-		summaries = append([]record.ProjectSummary{summary}, summaries...)
+		summaries = append([]record.ProjectMetadata{summary}, summaries...)
 	}
 
 	return s.Save(summaries)
@@ -106,7 +106,7 @@ func (s *ProjectIndexStore) Delete(id string) error {
 		return err
 	}
 
-	filtered := make([]record.ProjectSummary, 0, len(summaries))
+	filtered := make([]record.ProjectMetadata, 0, len(summaries))
 	for _, p := range summaries {
 		if p.ID != id {
 			filtered = append(filtered, p)

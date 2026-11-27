@@ -12,14 +12,15 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"server/internal/adapters/inbound/ws"
+	"server/internal/adapters/outbound/storage/catalog"
+	"server/internal/adapters/outbound/storage/jsonl"
+	"server/internal/app/collaboration"
+	"server/internal/app/project"
 	"server/internal/domain/asset"
 	"server/internal/domain/record"
 	"server/internal/domain/timeline"
 	"server/internal/ports"
-	"server/internal/app/project"
-	"server/internal/adapters/outbound/storage/catalog"
-	"server/internal/adapters/outbound/storage/jsonl"
-	"server/internal/adapters/inbound/ws"
 )
 
 type mockObjects struct{}
@@ -42,11 +43,11 @@ type testProjectManager struct {
 	svc ports.ProjectInstance
 }
 
-func (m *testProjectManager) List(ctx context.Context) ([]record.ProjectSummary, error) {
+func (m *testProjectManager) List(ctx context.Context) ([]record.ProjectMetadata, error) {
 	return nil, nil
 }
-func (m *testProjectManager) Create(ctx context.Context, name string) (record.ProjectSummary, ports.ProjectInstance, error) {
-	return record.ProjectSummary{}, m.svc, nil
+func (m *testProjectManager) Create(ctx context.Context, name string) (record.ProjectMetadata, ports.ProjectInstance, error) {
+	return record.ProjectMetadata{}, m.svc, nil
 }
 func (m *testProjectManager) Get(ctx context.Context, id string) (ports.ProjectInstance, error) {
 	return m.svc, nil
@@ -114,7 +115,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 	defer c1.Close()
 
-	var init1 ws.OutMessage
+	var init1 collaboration.OutMessage
 	if err := c1.ReadJSON(&init1); err != nil {
 		t.Fatalf("Read init1: %v", err)
 	}
@@ -128,7 +129,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 	defer c2.Close()
 
-	var init2 ws.OutMessage
+	var init2 collaboration.OutMessage
 	if err := c2.ReadJSON(&init2); err != nil {
 		t.Fatalf("Read init2: %v", err)
 	}
@@ -137,7 +138,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 
 	// c1 receives peer_joined notification
-	var peerJoin ws.OutMessage
+	var peerJoin collaboration.OutMessage
 	if err := c1.ReadJSON(&peerJoin); err != nil {
 		t.Fatalf("Read peer_joined: %v", err)
 	}
@@ -146,7 +147,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 
 	// c2 receives peer_joined notification about existing c1
-	var peerJoin2 ws.OutMessage
+	var peerJoin2 collaboration.OutMessage
 	if err := c2.ReadJSON(&peerJoin2); err != nil {
 		t.Fatalf("Read peerJoin2: %v", err)
 	}
@@ -156,17 +157,17 @@ func TestPresenceAndOperations(t *testing.T) {
 
 	// c1 sends presence
 	playhead := 42
-	err = c1.WriteJSON(ws.InMessage{
+	err = c1.WriteJSON(collaboration.InMessage{
 		Type:     "presence",
 		Playhead: &playhead,
-		Cursor:   &ws.Cursor{X: 100, Y: 200},
+		Cursor:   &collaboration.Cursor{X: 100, Y: 200},
 	})
 	if err != nil {
 		t.Fatalf("Send presence: %v", err)
 	}
 
 	// c2 should receive presence_broadcast
-	var presence ws.OutMessage
+	var presence collaboration.OutMessage
 	if err := c2.ReadJSON(&presence); err != nil {
 		t.Fatalf("Read presence: %v", err)
 	}
@@ -176,7 +177,7 @@ func TestPresenceAndOperations(t *testing.T) {
 
 	// c1 submits an operation (rename project)
 	expectedRev := uint64(0)
-	err = c1.WriteJSON(ws.InMessage{
+	err = c1.WriteJSON(collaboration.InMessage{
 		Type:  "op_submit",
 		ReqID: "req-1",
 		Op: &timeline.Edit{
@@ -192,7 +193,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 
 	// c1 receives op_ack
-	var ack ws.OutMessage
+	var ack collaboration.OutMessage
 	if err := c1.ReadJSON(&ack); err != nil {
 		t.Fatalf("Read op_ack: %v", err)
 	}
@@ -201,7 +202,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 
 	// c2 receives op_broadcast
-	var bcast ws.OutMessage
+	var bcast collaboration.OutMessage
 	if err := c2.ReadJSON(&bcast); err != nil {
 		t.Fatalf("Read op_broadcast: %v", err)
 	}
@@ -210,7 +211,7 @@ func TestPresenceAndOperations(t *testing.T) {
 	}
 }
 
-func connectTwoClients(t *testing.T, server *httptest.Server) (*websocket.Conn, *websocket.Conn, ws.OutMessage, ws.OutMessage) {
+func connectTwoClients(t *testing.T, server *httptest.Server) (*websocket.Conn, *websocket.Conn, collaboration.OutMessage, collaboration.OutMessage) {
 	t.Helper()
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/projects/proj-test/ws"
 
@@ -219,7 +220,7 @@ func connectTwoClients(t *testing.T, server *httptest.Server) (*websocket.Conn, 
 		t.Fatalf("Dial c1: %v", err)
 	}
 
-	var init1 ws.OutMessage
+	var init1 collaboration.OutMessage
 	if err := c1.ReadJSON(&init1); err != nil {
 		t.Fatalf("Read init1: %v", err)
 	}
@@ -229,17 +230,17 @@ func connectTwoClients(t *testing.T, server *httptest.Server) (*websocket.Conn, 
 		t.Fatalf("Dial c2: %v", err)
 	}
 
-	var init2 ws.OutMessage
+	var init2 collaboration.OutMessage
 	if err := c2.ReadJSON(&init2); err != nil {
 		t.Fatalf("Read init2: %v", err)
 	}
 
 	// c1 reads peer_joined
-	var join1 ws.OutMessage
+	var join1 collaboration.OutMessage
 	_ = c1.ReadJSON(&join1)
 
 	// c2 reads peer_joined
-	var join2 ws.OutMessage
+	var join2 collaboration.OutMessage
 	_ = c2.ReadJSON(&join2)
 
 	return c1, c2, init1, init2
@@ -252,7 +253,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 	defer c2.Close()
 
 	// 1. c1 claims clip-1 and clip-2
-	err := c1.WriteJSON(ws.InMessage{
+	err := c1.WriteJSON(collaboration.InMessage{
 		Type:    "claim_request",
 		ReqID:   "claim-req-1",
 		ClipIDs: []string{"clip-1", "clip-2"},
@@ -261,7 +262,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var ack1 ws.OutMessage
+	var ack1 collaboration.OutMessage
 	if err := c1.ReadJSON(&ack1); err != nil {
 		t.Fatalf("Read claim_ack: %v", err)
 	}
@@ -270,7 +271,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 	}
 
 	// c1 and c2 receive claim_broadcast
-	var bcast1, bcast2 ws.OutMessage
+	var bcast1, bcast2 collaboration.OutMessage
 	_ = c1.ReadJSON(&bcast1)
 	_ = c2.ReadJSON(&bcast2)
 	if bcast2.Type != "claim_broadcast" || !reflect.DeepEqual(bcast2.ClipIDs, []string{"clip-1", "clip-2"}) {
@@ -278,7 +279,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 	}
 
 	// 2. c2 attempts to claim clip-1 (already owned) and clip-3 (unassigned)
-	err = c2.WriteJSON(ws.InMessage{
+	err = c2.WriteJSON(collaboration.InMessage{
 		Type:    "claim_request",
 		ReqID:   "claim-req-2",
 		ClipIDs: []string{"clip-1", "clip-3"},
@@ -287,7 +288,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var ack2 ws.OutMessage
+	var ack2 collaboration.OutMessage
 	if err := c2.ReadJSON(&ack2); err != nil {
 		t.Fatalf("Read claim_ack c2: %v", err)
 	}
@@ -300,7 +301,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 	_ = c2.ReadJSON(&bcast2)
 
 	// 3. c1 voluntarily releases clip-1
-	err = c1.WriteJSON(ws.InMessage{
+	err = c1.WriteJSON(collaboration.InMessage{
 		Type:    "release_request",
 		ClipIDs: []string{"clip-1"},
 	})
@@ -308,7 +309,7 @@ func TestRoom_ClaimAndRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var rel1, rel2 ws.OutMessage
+	var rel1, rel2 collaboration.OutMessage
 	_ = c1.ReadJSON(&rel1)
 	_ = c2.ReadJSON(&rel2)
 	if rel2.Type != "release_broadcast" || !reflect.DeepEqual(rel2.ClipIDs, []string{"clip-1"}) {
@@ -323,19 +324,19 @@ func TestRoom_PermissionHandshake(t *testing.T) {
 	defer c2.Close()
 
 	// 1. c1 claims clip-A
-	_ = c1.WriteJSON(ws.InMessage{
+	_ = c1.WriteJSON(collaboration.InMessage{
 		Type:    "claim_request",
 		ReqID:   "c-1",
 		ClipIDs: []string{"clip-A"},
 	})
-	var ack ws.OutMessage
+	var ack collaboration.OutMessage
 	_ = c1.ReadJSON(&ack)
-	var b1, b2 ws.OutMessage
+	var b1, b2 collaboration.OutMessage
 	_ = c1.ReadJSON(&b1)
 	_ = c2.ReadJSON(&b2)
 
 	// 2. c2 asks permission to edit clip-A
-	err := c2.WriteJSON(ws.InMessage{
+	err := c2.WriteJSON(collaboration.InMessage{
 		Type:   "permission_request",
 		ReqID:  "perm-1",
 		ClipID: "clip-A",
@@ -345,7 +346,7 @@ func TestRoom_PermissionHandshake(t *testing.T) {
 	}
 
 	// 3. c1 receives permission_prompt
-	var prompt ws.OutMessage
+	var prompt collaboration.OutMessage
 	if err := c1.ReadJSON(&prompt); err != nil {
 		t.Fatalf("Read permission_prompt: %v", err)
 	}
@@ -355,7 +356,7 @@ func TestRoom_PermissionHandshake(t *testing.T) {
 
 	// 4. c1 approves the transfer
 	approved := true
-	err = c1.WriteJSON(ws.InMessage{
+	err = c1.WriteJSON(collaboration.InMessage{
 		Type:     "permission_response",
 		ReqID:    "perm-1",
 		Approved: &approved,
@@ -365,7 +366,7 @@ func TestRoom_PermissionHandshake(t *testing.T) {
 	}
 
 	// 5. Both receive permission_resolved with new_owner = c2
-	var res1, res2 ws.OutMessage
+	var res1, res2 collaboration.OutMessage
 	_ = c1.ReadJSON(&res1)
 	_ = c2.ReadJSON(&res2)
 	if res2.Type != "permission_resolved" || res2.Approved == nil || !*res2.Approved || res2.NewOwner == nil || *res2.NewOwner != init2.ClientID {
@@ -389,7 +390,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	defer c2.Close()
 
 	// 1. c1 proposes adding a track
-	err := c1.WriteJSON(ws.InMessage{
+	err := c1.WriteJSON(collaboration.InMessage{
 		Type:        "consensus_propose",
 		ProposalID:  "prop-track-1",
 		Description: "Add Video Track 2",
@@ -404,7 +405,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	}
 
 	// 2. c2 receives consensus_prompt
-	var prompt ws.OutMessage
+	var prompt collaboration.OutMessage
 	if err := c2.ReadJSON(&prompt); err != nil {
 		t.Fatalf("Read consensus_prompt: %v", err)
 	}
@@ -414,7 +415,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 
 	// 3. c2 votes to approve
 	approved := true
-	err = c2.WriteJSON(ws.InMessage{
+	err = c2.WriteJSON(collaboration.InMessage{
 		Type:       "consensus_vote",
 		ProposalID: "prop-track-1",
 		Approved:   &approved,
@@ -424,7 +425,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	}
 
 	// 4. Both receive consensus_resolved with approved=true
-	var res1, res2 ws.OutMessage
+	var res1, res2 collaboration.OutMessage
 	_ = c1.ReadJSON(&res1)
 	_ = c2.ReadJSON(&res2)
 	if res2.Type != "consensus_resolved" || res2.Approved == nil || !*res2.Approved {
@@ -432,7 +433,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	}
 
 	// 5. Both receive op_broadcast confirming track committed
-	var bcast1, bcast2 ws.OutMessage
+	var bcast1, bcast2 collaboration.OutMessage
 	_ = c1.ReadJSON(&bcast1)
 	_ = c2.ReadJSON(&bcast2)
 	if bcast2.Type != "op_broadcast" || bcast2.State == nil {
@@ -452,7 +453,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	}
 
 	// 6. Test delete-track via consensus
-	err = c2.WriteJSON(ws.InMessage{
+	err = c2.WriteJSON(collaboration.InMessage{
 		Type:        "consensus_propose",
 		ProposalID:  "prop-del-track-1",
 		Description: "Delete Track video-track-2",
@@ -467,7 +468,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	}
 
 	// c1 receives prompt
-	var delPrompt ws.OutMessage
+	var delPrompt collaboration.OutMessage
 	if err := c1.ReadJSON(&delPrompt); err != nil {
 		t.Fatalf("Read consensus_prompt for delete-track: %v", err)
 	}
@@ -476,7 +477,7 @@ func TestRoom_ConsensusProposalAndVote(t *testing.T) {
 	}
 
 	// c1 approves
-	err = c1.WriteJSON(ws.InMessage{
+	err = c1.WriteJSON(collaboration.InMessage{
 		Type:       "consensus_vote",
 		ProposalID: "prop-del-track-1",
 		Approved:   &approved,
@@ -517,7 +518,7 @@ func TestRoom_ConsensusBrowserRawJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var prompt ws.OutMessage
+	var prompt collaboration.OutMessage
 	if err := c2.ReadJSON(&prompt); err != nil {
 		t.Fatalf("Read prompt: %v", err)
 	}
@@ -532,7 +533,7 @@ func TestRoom_ConsensusBrowserRawJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var res1, res2 ws.OutMessage
+	var res1, res2 collaboration.OutMessage
 	_ = c1.ReadJSON(&res1)
 	_ = c2.ReadJSON(&res2)
 	t.Logf("Resolved res1: %+v, res2: %+v", res1, res2)
@@ -540,7 +541,7 @@ func TestRoom_ConsensusBrowserRawJSON(t *testing.T) {
 		t.Fatalf("Expected consensus_resolved approved=true, got %+v", res2)
 	}
 
-	var bcast1, bcast2 ws.OutMessage
+	var bcast1, bcast2 collaboration.OutMessage
 	_ = c1.ReadJSON(&bcast1)
 	_ = c2.ReadJSON(&bcast2)
 	t.Logf("Broadcast bcast1: %+v, bcast2: %+v", bcast1, bcast2)
@@ -561,12 +562,12 @@ func TestRoom_OwnershipReclamationOnDisconnect(t *testing.T) {
 	room.SetGraceDuration(50 * time.Millisecond)
 
 	// c1 claims clip-X
-	_ = c1.WriteJSON(ws.InMessage{
+	_ = c1.WriteJSON(collaboration.InMessage{
 		Type:    "claim_request",
 		ReqID:   "req-x",
 		ClipIDs: []string{"clip-X"},
 	})
-	var ack, b1, b2 ws.OutMessage
+	var ack, b1, b2 collaboration.OutMessage
 	_ = c1.ReadJSON(&ack)
 	_ = c1.ReadJSON(&b1)
 	_ = c2.ReadJSON(&b2)
@@ -575,7 +576,7 @@ func TestRoom_OwnershipReclamationOnDisconnect(t *testing.T) {
 	_ = c1.Close()
 
 	// c2 receives peer_left
-	var left ws.OutMessage
+	var left collaboration.OutMessage
 	if err := c2.ReadJSON(&left); err != nil {
 		t.Fatalf("Read peer_left: %v", err)
 	}
@@ -584,7 +585,7 @@ func TestRoom_OwnershipReclamationOnDisconnect(t *testing.T) {
 	}
 
 	// After grace expiration (50ms), c2 receives release_broadcast for clip-X
-	var rel ws.OutMessage
+	var rel collaboration.OutMessage
 	if err := c2.ReadJSON(&rel); err != nil {
 		t.Fatalf("Read release_broadcast: %v", err)
 	}
@@ -600,19 +601,19 @@ func TestRoom_OpSubmitAuthorization(t *testing.T) {
 	defer c2.Close()
 
 	// c1 claims clip-locked
-	_ = c1.WriteJSON(ws.InMessage{
+	_ = c1.WriteJSON(collaboration.InMessage{
 		Type:    "claim_request",
 		ReqID:   "req-lock",
 		ClipIDs: []string{"clip-locked"},
 	})
-	var ack, b1, b2 ws.OutMessage
+	var ack, b1, b2 collaboration.OutMessage
 	_ = c1.ReadJSON(&ack)
 	_ = c1.ReadJSON(&b1)
 	_ = c2.ReadJSON(&b2)
 
 	// c2 tries to delete clip-locked -> rejected with conflict
 	expRev := uint64(0)
-	err := c2.WriteJSON(ws.InMessage{
+	err := c2.WriteJSON(collaboration.InMessage{
 		Type:  "op_submit",
 		ReqID: "submit-1",
 		Op: &timeline.Edit{
@@ -626,7 +627,7 @@ func TestRoom_OpSubmitAuthorization(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var opErr ws.OutMessage
+	var opErr collaboration.OutMessage
 	if err := c2.ReadJSON(&opErr); err != nil {
 		t.Fatalf("Read op_error: %v", err)
 	}

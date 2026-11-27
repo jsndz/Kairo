@@ -258,7 +258,7 @@ func isolatedCommand(name string, args ...string) *exec.Cmd {
 }
 
 func runStorageBenchmarks() []MetricEntry {
-	cmd := isolatedCommand("go", "test", "-bench=^BenchmarkStorage|^BenchmarkOwnership", "-benchmem", "-count=1", "./benchmarks/...")
+	cmd := isolatedCommand("go", "test", "-bench=^BenchmarkStorage|^BenchmarkOwnership|^BenchmarkSQLite", "-benchmem", "-count=1", "./benchmarks/...")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("  Warning: storage benchmarks returned: %v\n", err)

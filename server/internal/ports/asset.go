@@ -15,5 +15,4 @@ type AssetManager interface {
 	Content(ctx context.Context, id string) (string, error)
 }
 
-// AssetService aliases AssetManager.
-type AssetService = AssetManager
+

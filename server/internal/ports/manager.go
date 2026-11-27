@@ -15,8 +15,8 @@ type ProjectInstance interface {
 
 // ProjectManager coordinates project creation, lookup, listing, and lifecycle management.
 type ProjectManager interface {
-	List(ctx context.Context) ([]record.ProjectSummary, error)
-	Create(ctx context.Context, name string) (record.ProjectSummary, ProjectInstance, error)
+	List(ctx context.Context) ([]record.ProjectMetadata, error)
+	Create(ctx context.Context, name string) (record.ProjectMetadata, ProjectInstance, error)
 	Get(ctx context.Context, id string) (ProjectInstance, error)
 	Delete(ctx context.Context, id string) error
 	Touch(id string)

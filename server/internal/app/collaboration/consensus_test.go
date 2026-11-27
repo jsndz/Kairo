@@ -8,6 +8,7 @@ import (
 
 	"server/internal/app/collaboration"
 	"server/internal/domain/timeline"
+	"server/internal/ports"
 )
 
 func makeEdit(id, kind, data string) timeline.Edit {
@@ -182,7 +183,7 @@ func TestTimeout_TriggersCallback(t *testing.T) {
 	c := collaboration.NewCoordinator()
 
 	timeoutCh := make(chan string, 1)
-	c.SetTimeoutCallback(func(p *collaboration.Proposal) {
+	c.SetTimeoutCallback(func(p *ports.Proposal) {
 		timeoutCh <- p.ID
 	})
 

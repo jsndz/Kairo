@@ -10,11 +10,10 @@ import (
 	"server/internal/ports"
 )
 
-// Proposal aliases ports.Proposal.
-type Proposal = ports.Proposal
+
 
 // CloneProposal returns a deep copy of the proposal.
-func CloneProposal(p *Proposal) *Proposal {
+func CloneProposal(p *ports.Proposal) *ports.Proposal {
 	if p == nil {
 		return nil
 	}
@@ -30,28 +29,28 @@ func CloneProposal(p *Proposal) *Proposal {
 // Coordinator manages two-party consensus proposals and quorum validation.
 type Coordinator struct {
 	mu        sync.RWMutex
-	proposals map[string]*Proposal
+	proposals map[string]*ports.Proposal
 	timers    map[string]*time.Timer
-	onTimeout func(p *Proposal)
+	onTimeout func(p *ports.Proposal)
 }
 
 // NewCoordinator creates an empty consensus coordinator.
 func NewCoordinator() *Coordinator {
 	return &Coordinator{
-		proposals: make(map[string]*Proposal),
+		proposals: make(map[string]*ports.Proposal),
 		timers:    make(map[string]*time.Timer),
 	}
 }
 
 // SetTimeoutCallback sets a hook triggered when a proposal expires.
-func (c *Coordinator) SetTimeoutCallback(fn func(p *Proposal)) {
+func (c *Coordinator) SetTimeoutCallback(fn func(p *ports.Proposal)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.onTimeout = fn
 }
 
 // Propose initiates a new consensus proposal with an expiration timer.
-func (c *Coordinator) Propose(proposalID, proposerID string, op timeline.Edit, description string, timeout time.Duration) (*Proposal, error) {
+func (c *Coordinator) Propose(proposalID, proposerID string, op timeline.Edit, description string, timeout time.Duration) (*ports.Proposal, error) {
 	if proposalID == "" || proposerID == "" {
 		return nil, errors.New("proposalID and proposerID are required")
 	}
@@ -71,7 +70,7 @@ func (c *Coordinator) Propose(proposalID, proposerID string, op timeline.Edit, d
 	}
 
 	now := time.Now().UTC()
-	p := &Proposal{
+	p := &ports.Proposal{
 		ID:          proposalID,
 		ProposerID:  proposerID,
 		Op:          op,
@@ -134,7 +133,7 @@ func (c *Coordinator) Vote(proposalID, voterID string, approve bool) (resolved b
 }
 
 // Cancel aborts a proposal and stops its timer.
-func (c *Coordinator) Cancel(proposalID string) (*Proposal, bool) {
+func (c *Coordinator) Cancel(proposalID string) (*ports.Proposal, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -149,7 +148,7 @@ func (c *Coordinator) Cancel(proposalID string) (*Proposal, bool) {
 }
 
 // ActiveProposal returns the currently active unexpired proposal, if any.
-func (c *Coordinator) ActiveProposal() (*Proposal, bool) {
+func (c *Coordinator) ActiveProposal() (*ports.Proposal, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 

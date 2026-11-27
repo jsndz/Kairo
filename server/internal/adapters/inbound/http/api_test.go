@@ -167,11 +167,11 @@ func TestAssetRegistrationAndValidation(t *testing.T) {
 
 type mockManagerForRoomHTTP struct{}
 
-func (m *mockManagerForRoomHTTP) List(_ context.Context) ([]record.ProjectSummary, error) {
+func (m *mockManagerForRoomHTTP) List(_ context.Context) ([]record.ProjectMetadata, error) {
 	return nil, nil
 }
-func (m *mockManagerForRoomHTTP) Create(_ context.Context, name string) (record.ProjectSummary, ports.ProjectInstance, error) {
-	return record.ProjectSummary{ID: "room-generated-999", Name: name}, nil, nil
+func (m *mockManagerForRoomHTTP) Create(_ context.Context, name string) (record.ProjectMetadata, ports.ProjectInstance, error) {
+	return record.ProjectMetadata{ID: "room-generated-999", Name: name}, nil, nil
 }
 func (m *mockManagerForRoomHTTP) Get(_ context.Context, _ string) (ports.ProjectInstance, error) {
 	return nil, nil

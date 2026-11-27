@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"reflect"
@@ -21,21 +22,19 @@ import (
 	"server/internal/ports"
 )
 
-// State is the project snapshot exposed to clients.
-type State = ports.State
-
 // Service manages authoritative project state and mutations.
 type Service struct {
-	mu        sync.Mutex
-	meta      record.Metadata
-	catalog   ports.CatalogRepository
-	log       ports.OperationLogRepository
-	objects   ports.ObjectStore
-	byID      map[string]record.Record
-	hist      history.History
-	revision  uint64
-	blocked   bool
-	maxUpload int64
+	mu              sync.Mutex
+	meta            record.Metadata
+	catalog         ports.CatalogRepository
+	log             ports.OperationLogRepository
+	objects         ports.ObjectStore
+	byID            map[string]record.Record
+	hist            history.History
+	revision        uint64
+	lastSnapshotRev uint64
+	blocked         bool
+	maxUpload       int64
 }
 
 // Open loads metadata and replays the operation log.
@@ -49,20 +48,56 @@ func Open(catalog ports.CatalogRepository, log ports.OperationLogRepository, obj
 		maxUpload: maxUpload,
 	}
 
-	// 1. Read log
-	rows, err := log.Read()
+	// 1. Check for materialized snapshot (O(1) fast hydration)
+	var snapSeq uint64
+	if snapRepo, ok := log.(ports.SnapshotRepository); ok {
+		snap, err := snapRepo.GetLatestSnapshot()
+		if err == nil && snap != nil && snap.Sequence > 0 {
+			var snapState struct {
+				Revision uint64            `json:"revision"`
+				Timeline timeline.Timeline `json:"timeline"`
+			}
+			if err := json.Unmarshal(snap.State, &snapState); err == nil && snapState.Revision > 0 {
+				s.revision = snapState.Revision
+				s.hist = history.New(snapState.Timeline)
+				s.lastSnapshotRev = snapState.Revision
+				snapSeq = snapState.Revision
+			}
+		}
+	}
+
+	// 2. Read log records (delta if snapshot exists, full log otherwise)
+	var rows []record.Record
+	var err error
+	if snapSeq > 0 {
+		if deltaLog, ok := log.(record.DeltaLogReader); ok {
+			rows, err = deltaLog.ReadSince(snapSeq)
+		} else {
+			all, readErr := log.Read()
+			if readErr != nil {
+				return nil, fmt.Errorf("read operations: %w", readErr)
+			}
+			for _, r := range all {
+				if r.Sequence > snapSeq {
+					rows = append(rows, r)
+				}
+			}
+		}
+	} else {
+		rows, err = log.Read()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("read operations: %w", err)
 	}
 
-	// 2. Load metadata
-	meta, err := s.loadOrCreateMetadata(len(rows) > 0)
+	// 3. Load metadata
+	meta, err := s.loadOrCreateMetadata(snapSeq > 0 || len(rows) > 0)
 	if err != nil {
 		return nil, err
 	}
 	s.meta = meta
 
-	// 3. Replay operations
+	// 4. Replay operations
 	if err := s.replayLog(rows); err != nil {
 		return nil, err
 	}
@@ -136,7 +171,7 @@ func (s *Service) replayLog(rows []record.Record) error {
 }
 
 // Get returns current project state snapshot.
-func (s *Service) Get() State {
+func (s *Service) Get() ports.State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.state()
@@ -149,8 +184,8 @@ func (s *Service) ProjectID() string {
 	return s.meta.ID
 }
 
-// Summary returns a lightweight summary of project state for catalogs and dashboards.
-func (s *Service) Summary() record.ProjectSummary {
+// Metadata returns lightweight project metadata for catalogs and dashboards.
+func (s *Service) Metadata() record.ProjectMetadata {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st := s.state()
@@ -158,7 +193,7 @@ func (s *Service) Summary() record.ProjectSummary {
 	if name == "" {
 		name = "Untitled Project"
 	}
-	return record.ProjectSummary{
+	return record.ProjectMetadata{
 		ID:        st.ID,
 		Name:      name,
 		Revision:  st.Revision,
@@ -169,10 +204,34 @@ func (s *Service) Summary() record.ProjectSummary {
 	}
 }
 
+
+
 // Close flushes and safely releases resources.
 func (s *Service) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// 1. Save final snapshot if new operations were committed
+	if s.revision > s.lastSnapshotRev {
+		if snapRepo, ok := s.log.(ports.SnapshotRepository); ok {
+			snapPayload, err := json.Marshal(map[string]any{
+				"revision": s.revision,
+				"timeline": s.hist.Current,
+			})
+			if err == nil {
+				_ = snapRepo.SaveSnapshot(s.revision, snapPayload)
+				s.lastSnapshotRev = s.revision
+			}
+		}
+	}
+
+	// 2. Release storage resources (e.g. SQLite connection pool)
+	if closer, ok := s.log.(io.Closer); ok {
+		_ = closer.Close()
+	}
+	if closer, ok := s.catalog.(io.Closer); ok {
+		_ = closer.Close()
+	}
 	return nil
 }
 
@@ -180,6 +239,11 @@ func (s *Service) Close() error {
 func (s *Service) GetOpsSince(sinceSeq uint64) ([]record.Record, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if deltaLog, ok := s.log.(record.DeltaLogReader); ok {
+		return deltaLog.ReadSince(sinceSeq)
+	}
+
 	all, err := s.log.Read()
 	if err != nil {
 		return nil, err
@@ -194,36 +258,36 @@ func (s *Service) GetOpsSince(sinceSeq uint64) ([]record.Record, error) {
 }
 
 // Commit appends an edit to the log and applies it to state.
-func (s *Service) Commit(e timeline.Edit) (State, error) {
+func (s *Service) Commit(e timeline.Edit) (ports.State, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.blocked {
-		return State{}, domErrors.ErrUnavailable
+		return ports.State{}, domErrors.ErrUnavailable
 	}
 
 	// 1. Validate headers
 	if strings.TrimSpace(e.ID) == "" || len(e.ID) > 128 || e.ExpectedRevision == nil {
-		return State{}, fmt.Errorf("%w: operation ID and revision are required", domErrors.ErrInvalid)
+		return ports.State{}, fmt.Errorf("%w: operation ID and revision are required", domErrors.ErrInvalid)
 	}
 
 	// 2. Canonicalize payload
 	canonicalPayload, err := canonicalizePayload(e.Payload)
 	if err != nil {
-		return State{}, err
+		return ports.State{}, err
 	}
 
 	// 3. Idempotency check
 	if existing, exists := s.byID[e.ID]; exists {
 		if existing.Type != e.Type || !bytes.Equal(existing.Payload, canonicalPayload) {
-			return State{}, fmt.Errorf("%w: operation ID already used with different payload", domErrors.ErrConflict)
+			return ports.State{}, fmt.Errorf("%w: operation ID already used with different payload", domErrors.ErrConflict)
 		}
 		return s.state(), nil
 	}
 
 	// 4. Revision check
 	if *e.ExpectedRevision != s.revision {
-		return State{}, fmt.Errorf("%w: project revision changed", domErrors.ErrConflict)
+		return ports.State{}, fmt.Errorf("%w: project revision changed", domErrors.ErrConflict)
 	}
 
 	// 5. Build record
@@ -239,29 +303,41 @@ func (s *Service) Commit(e timeline.Edit) (State, error) {
 	// 6. Reduce next state
 	nextHistory, err := s.reduce(row)
 	if err != nil {
-		return State{}, fmt.Errorf("%w: %v", domErrors.ErrInvalid, err)
+		return ports.State{}, fmt.Errorf("%w: %v", domErrors.ErrInvalid, err)
 	}
 
 	// 7. Append to log
 	if err := s.log.Append(row); err != nil {
 		s.blocked = true
-		return State{}, fmt.Errorf("%w: append operation: %v", domErrors.ErrUnavailable, err)
+		return ports.State{}, fmt.Errorf("%w: append operation: %v", domErrors.ErrUnavailable, err)
 	}
 
 	// 8. Update state
 	s.accept(row, nextHistory)
+
+	// Check if periodic snapshot checkpoint is due (every 500 operations)
+	if s.revision-s.lastSnapshotRev >= 500 {
+		if snapRepo, ok := s.log.(ports.SnapshotRepository); ok {
+			snapPayload, err := json.Marshal(map[string]any{
+				"revision": s.revision,
+				"timeline": s.hist.Current,
+			})
+			if err == nil {
+				_ = snapRepo.SaveSnapshot(s.revision, snapPayload)
+				s.lastSnapshotRev = s.revision
+			}
+		}
+	}
+
 	return s.state(), nil
 }
 
-// OwnershipChecker verifies clip edit permissions.
-type OwnershipChecker = ports.OwnershipChecker
-
 // CommitAuthor validates ownership before committing the edit.
-func (s *Service) CommitAuthor(e timeline.Edit, authorID string, checker OwnershipChecker) (State, error) {
+func (s *Service) CommitAuthor(e timeline.Edit, authorID string, checker ports.OwnershipChecker) (ports.State, error) {
 	if checker != nil && authorID != "" {
 		if clipID, ok := timeline.ExtractClipID(e); ok {
 			if !checker.IsAllowed(authorID, clipID) {
-				return State{}, fmt.Errorf("%w: clip %s is owned by peer", domErrors.ErrConflict, clipID)
+				return ports.State{}, fmt.Errorf("%w: clip %s is owned by peer", domErrors.ErrConflict, clipID)
 			}
 		}
 	}
@@ -352,8 +428,8 @@ func (s *Service) accept(r record.Record, next history.History) {
 }
 
 // state serializes active state. Caller must hold s.mu.
-func (s *Service) state() State {
-	out := State{
+func (s *Service) state() ports.State {
+	out := ports.State{
 		ID:       s.meta.ID,
 		Revision: s.revision,
 		CanUndo:  s.hist.CanUndo(),

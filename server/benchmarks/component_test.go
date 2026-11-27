@@ -11,10 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"server/internal/adapters/outbound/ffmpeg"
 	"server/internal/adapters/outbound/storage/catalog"
 	exportstorage "server/internal/adapters/outbound/storage/export"
 	"server/internal/adapters/outbound/storage/jsonl"
-	"server/internal/adapters/outbound/ffmpeg"
+	"server/internal/adapters/outbound/storage/sqlite"
 	"server/internal/app/collaboration"
 	appexport "server/internal/app/export"
 	"server/internal/app/project"
@@ -182,6 +183,100 @@ func BenchmarkStorage_ReplayHydration(b *testing.B) {
 	}
 }
 
+// BenchmarkSQLite_AppendSequential measures SQLite WAL append throughput.
+func BenchmarkSQLite_AppendSequential(b *testing.B) {
+	dir := b.TempDir()
+	pdb, err := sqlite.OpenProject(filepath.Join(dir, "project.db"))
+	if err != nil {
+		b.Fatalf("failed to open sqlite project db: %v", err)
+	}
+	defer pdb.Close()
+
+	repo := pdb.Log()
+	payload := json.RawMessage(`{"name":"benchmark-title"}`)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		rec := record.Record{
+			ID:        fmt.Sprintf("op-sqlite-append-%d", i),
+			ProjectID: "bench-proj-1",
+			Sequence:  uint64(i + 1),
+			Timestamp: time.Now().UTC(),
+			Type:      "rename",
+			Payload:   payload,
+		}
+		if err := repo.Append(rec); err != nil {
+			b.Fatalf("append failed at %d: %v", i, err)
+		}
+	}
+}
+
+// BenchmarkSQLite_SnapshotHydration measures cold-start hydration time from SQLite
+// when loading state from a materialized snapshot and replaying delta operations.
+func BenchmarkSQLite_SnapshotHydration(b *testing.B) {
+	depths := []int{100, 500, 1000, 5000}
+
+	for _, depth := range depths {
+		b.Run(fmt.Sprintf("%d_ops", depth), func(b *testing.B) {
+			dir := b.TempDir()
+			dbPath := filepath.Join(dir, "project.db")
+			pdb, err := sqlite.OpenProject(dbPath)
+			if err != nil {
+				b.Fatalf("failed to open project db: %v", err)
+			}
+			defer pdb.Close()
+
+			mockObj := &mockObjects{data: make(map[string]asset.ObjectInfo)}
+
+			// Save metadata
+			meta := record.Metadata{
+				ID:     "sqlite-hydration-proj",
+				Assets: make(map[string]asset.Asset),
+			}
+			if err := pdb.Catalog().Save(meta); err != nil {
+				b.Fatalf("failed to save metadata: %v", err)
+			}
+
+			// Pre-populate operations
+			for j := 1; j <= depth; j++ {
+				rec := record.Record{
+					ID:        fmt.Sprintf("hydrate-op-%d", j),
+					ProjectID: "sqlite-hydration-proj",
+					Sequence:  uint64(j),
+					Timestamp: time.Now().UTC(),
+					Type:      "rename",
+					Payload:   []byte(fmt.Sprintf(`{"name":"Title %d"}`, j)),
+				}
+				if err := pdb.Log().Append(rec); err != nil {
+					b.Fatalf("append op failed: %v", err)
+				}
+			}
+
+			// Save snapshot at depth
+			snapPayload, _ := json.Marshal(map[string]any{
+				"revision": uint64(depth),
+				"timeline": timeline.Timeline{Name: fmt.Sprintf("Title %d", depth)},
+			})
+			if err := pdb.Log().SaveSnapshot(uint64(depth), snapPayload); err != nil {
+				b.Fatalf("save snapshot failed: %v", err)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				svc, err := project.Open(pdb.Catalog(), pdb.Log(), mockObj, 1024*1024)
+				if err != nil {
+					b.Fatalf("open project failed: %v", err)
+				}
+				_ = svc
+			}
+		})
+	}
+}
+
 // BenchmarkOwnership_Contention simulates 2 competing clients hammering OwnershipEngine.Claim
 // and Release concurrently across 10 shared clips to measure mutex contention and lock throughput.
 func BenchmarkOwnership_Contention(b *testing.B) {
@@ -256,8 +351,8 @@ type mockExportReader struct {
 func (m *mockExportReader) Get() ports.State                             { return m.state }
 func (m *mockExportReader) GetOpsSince(_ uint64) ([]record.Record, error) { return nil, nil }
 func (m *mockExportReader) ProjectID() string                             { return m.state.ID }
-func (m *mockExportReader) Summary() record.ProjectSummary {
-	return record.ProjectSummary{ID: m.state.ID, Revision: m.state.Revision}
+func (m *mockExportReader) Metadata() record.ProjectMetadata {
+	return record.ProjectMetadata{ID: m.state.ID, Revision: m.state.Revision}
 }
 
 type mockExportResolver struct {

@@ -11,11 +11,18 @@ import {
   orderCompositionClips,
 } from '../src/features/editor/domain/index.ts'
 import { useExportStore } from '../src/features/export/state/useExportStore.ts'
+import {
+  calculateLetterbox,
+  calculateSourceTimeSeconds,
+  isClipActiveAtFrame,
+  RESOLUTION_DIMENSIONS,
+} from '../src/features/export/engine/compositor.ts'
 
-function formatBenchmark(name, iterations, durationMs) {
+function formatBenchmark(name, iterations, durationMs, unit = 'ops/sec', perOpUnit = 'ns/op', multiplier = 1e6) {
   const opsPerSec = (iterations / (durationMs / 1000)).toLocaleString('en-US', { maximumFractionDigits: 1 })
-  const nsPerOp = ((durationMs * 1e6) / iterations).toLocaleString('en-US', { maximumFractionDigits: 1 })
-  console.log(`  [BENCHMARK] ${name.padEnd(45)}: ${opsPerSec.padStart(12)} ops/sec (${nsPerOp.padStart(8)} ns/op)`)
+  const rawTime = (durationMs * multiplier) / iterations
+  const timePerOp = rawTime < 1 ? rawTime.toFixed(2) : rawTime.toLocaleString('en-US', { maximumFractionDigits: 1 })
+  console.log(`  [BENCHMARK] ${name.padEnd(45)}: ${opsPerSec.padStart(12)} ${unit} (${timePerOp.padStart(8)} ${perOpUnit})`)
 }
 
 test('Frontend Benchmark Suite', async (t) => {
@@ -114,5 +121,75 @@ test('Frontend Benchmark Suite', async (t) => {
     formatBenchmark('Export Store Preflight & Settings Dispatch', iterations, t1 - t0)
   })
 
+  await t.test('Export Letterbox Aspect Ratio Transforms (100,000 iterations)', () => {
+    const iterations = 100_000
+    const target = RESOLUTION_DIMENSIONS['1080p'] // 1920x1080
+    const srcAspectRatios = [
+      { w: 1920, h: 1080 }, // 16:9 1080p
+      { w: 3840, h: 2160 }, // 16:9 4k
+      { w: 1080, h: 1920 }, // 9:16 vertical
+      { w: 1280, h: 720 },  // 16:9 720p
+      { w: 1440, h: 1080 }, // 4:3 SD
+      { w: 2560, h: 1080 }, // 21:9 ultrawide
+    ]
+
+    const t0 = performance.now()
+    let checkSum = 0
+    for (let i = 0; i < iterations; i++) {
+      const src = srcAspectRatios[i % srcAspectRatios.length]
+      const rect = calculateLetterbox(target.width, target.height, src.w, src.h)
+      checkSum += rect.dx + rect.dy + rect.dWidth + rect.dHeight
+    }
+    const t1 = performance.now()
+    assert.ok(checkSum > 0)
+    formatBenchmark('Export Letterbox & Aspect Ratio Math', iterations, t1 - t0)
+  })
+
+  await t.test('Client Export Compositing Loop Simulation (60s Timeline / 1,800 frames)', () => {
+    // Simulate a realistic multi-track timeline: 1,800 frames (60s @ 30fps) with 12 layered video & image clips
+    const totalFrames = 1800
+    const fps = 30
+    const { width, height } = RESOLUTION_DIMENSIONS['1080p']
+    const layers = [
+      { clip: { at: 0, length: 600, offset: 0 }, asset: { kind: 'video', width: 1920, height: 1080 } },
+      { clip: { at: 500, length: 700, offset: 15 }, asset: { kind: 'video', width: 3840, height: 2160 } },
+      { clip: { at: 1100, length: 700, offset: 0 }, asset: { kind: 'video', width: 1280, height: 720 } },
+      { clip: { at: 300, length: 300, offset: 0 }, asset: { kind: 'image', width: 1080, height: 1080 } },
+      { clip: { at: 1400, length: 400, offset: 0 }, asset: { kind: 'image', width: 800, height: 600 } },
+    ]
+
+    const runs = 50
+    const totalSimulatedFrames = runs * totalFrames
+    const t0 = performance.now()
+
+    let activeDrawOps = 0
+    for (let r = 0; r < runs; r++) {
+      for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
+        // Frame compositing pipeline matching clientExporter.ts:
+        // 1. Determine active visual clips at current frame
+        for (let l = 0; l < layers.length; l++) {
+          const { clip, asset } = layers[l]
+          if (isClipActiveAtFrame(clip.at, clip.length, frameIndex)) {
+            // 2. Source time computation
+            const sourceTime = calculateSourceTimeSeconds(clip.at, clip.offset, frameIndex, fps)
+            // 3. Aspect-ratio letterbox destination rect computation
+            const rect = calculateLetterbox(width, height, asset.width, asset.height)
+            activeDrawOps += (rect.dWidth > 0 && sourceTime >= 0) ? 1 : 0
+          }
+        }
+      }
+    }
+
+    const t1 = performance.now()
+    const durationMs = t1 - t0
+    const avgMsPer60sExport = durationMs / runs
+    const realTimeFactor = (60 * 1000) / avgMsPer60sExport
+
+    assert.ok(activeDrawOps > 0)
+    formatBenchmark('Client Export Frame Compositing Loop', totalSimulatedFrames, durationMs, 'frames/sec', 'µs/frame', 1e3)
+    console.log(`     ↳ 60s Video (1.8k frames) evaluated in ${avgMsPer60sExport.toFixed(2)} ms (${realTimeFactor.toFixed(0)}x faster than real-time)`)
+  })
+
   console.log('================================================================================\n')
 })
+

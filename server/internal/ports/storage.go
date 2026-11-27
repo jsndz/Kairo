@@ -13,17 +13,26 @@ type CatalogRepository interface {
 	Save(record.Metadata) error
 }
 
-// CatalogRepo aliases CatalogRepository.
-type CatalogRepo = CatalogRepository
-
 // OperationLogRepository defines append-only storage for ordered operation records.
 type OperationLogRepository interface {
 	Read() ([]record.Record, error)
 	Append(record.Record) error
 }
 
-// OpLogRepo aliases OperationLogRepository.
-type OpLogRepo = OperationLogRepository
+// SnapshotRepository defines persistence for materialized project state checkpoints.
+type SnapshotRepository interface {
+	GetLatestSnapshot() (*record.Snapshot, error)
+	SaveSnapshot(sequence uint64, state []byte) error
+}
+
+// ProjectIndexRepository defines persistence for global project summaries.
+type ProjectIndexRepository interface {
+	Read() ([]record.ProjectMetadata, error)
+	Save(summaries []record.ProjectMetadata) error
+	Upsert(summary record.ProjectMetadata) error
+	Delete(id string) error
+	Close() error
+}
 
 // ObjectStore defines object storage operations for media uploads and streaming.
 type ObjectStore interface {

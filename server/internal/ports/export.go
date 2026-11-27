@@ -58,5 +58,4 @@ type ExportService interface {
 	DownloadURL(ctx context.Context, id string) (string, error)
 }
 
-// ExportManager aliases ExportService for interface consistency.
-type ExportManager = ExportService
+

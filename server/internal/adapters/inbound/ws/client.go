@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"server/internal/app/collaboration"
 )
 
 const (
@@ -68,7 +70,7 @@ func (c *Client) readpump() {
 			break
 		}
 
-		var msg InMessage
+		var msg collaboration.InMessage
 		if err := json.Unmarshal(raw, &msg); err != nil {
 			continue
 		}
@@ -128,7 +130,7 @@ func (c *Client) Send(msg []byte) bool {
 	}
 }
 
-func (c *Client) sendMsg(msg OutMessage) {
+func (c *Client) sendMsg(msg collaboration.OutMessage) {
 	if raw, err := json.Marshal(msg); err == nil {
 		c.Send(raw)
 	}
